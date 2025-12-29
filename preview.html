@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview - JD & Acknowledgement</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <style>
+        /* Preview specific tweaks */
+        /* show controls on-screen (hidden only in print) */
+        .no-print { display: block !important; }
+        /* allow canvas to be used for drawing in preview */
+        .sig-canvas { display: block; width:100%; height:100%; cursor: crosshair; touch-action: none; }
+        .sig-img-preview { display: block; max-width:100%; height:auto; }
+        .preview-note { padding:10px; background:#f7f7f7; border:1px solid #eee; margin-bottom:10px; }
+        .disabled-input { background: transparent; border: none; padding: 0; }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+     
+        <div class="no-print">
+            <button class="btn-print" onclick="window.print()">🖨️ 1. บันทึกเป็น PDF</button>
+            <button class="btn-email" id="btnEmail">📧 2. ส่งอีเมลหา ผู้อนุมัติ</button>
+        </div>
+
+        <!-- Reuse main content from index.html but inputs will be populated by js/preview.js -->
+
+        <!-- ISO Header -->
+        <table class="iso-header">
+            <tr>
+                <td class="col-logo logo-box" id="logoContainer">
+                    <div id="logoPlaceholder">📷 โลโก้</div>
+                    <img id="logoPreview" src="">
+                </td>
+                <td class="col-title header-title">
+                    แบบบรรยายลักษณะงานและข้อตกลงการทำงาน
+                    <span class="header-subtitle">(Job Description & Employment Agreement)</span>
+                </td>
+                <td class="col-info header-info">
+                    <strong>รหัสเอกสาร:</strong> FM-HR-001<br>
+                    <strong>Rev:</strong> 02<br>
+                    <strong>Effective:</strong> 01/01/2025
+                </td>
+            </tr>
+        </table>
+
+        <!-- General Info -->
+        <h2>1. ข้อมูลตำแหน่งงาน (Position Info)</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>ชื่อตำแหน่ง (Position Title):</label>
+                <input type="text" id="positionName" readonly class="disabled-input">
+            </div>
+            <div class="form-group">
+                <label>แผนก/ฝ่าย (Department):</label>
+                <input type="text" id="DeptName" readonly class="disabled-input">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>สถานที่ปฏิบัติงาน (Location):</label>
+                <input type="text" id="location" readonly class="disabled-input">
+            </div>
+            <div class="form-group">
+                <label>ระดับตำแหน่ง (Level):</label>
+                <input type="text" id="level" readonly class="disabled-input">
+            </div>
+        </div>
+
+        <!-- Specs -->
+        <h2>2. คุณสมบัติผู้ดำรงตำแหน่ง (Job Specifications)</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>วุฒิการศึกษา:</label>
+                <input type="text" id="educationText" readonly class="disabled-input">
+            </div>
+            <div class="form-group">
+                <label>ประสบการณ์:</label>
+                <input type="text" id="experienceText" readonly class="disabled-input">
+            </div>
+        </div>
+
+        <!-- Responsibilities -->
+        <h2>3. หน้าที่ความรับผิดชอบ (Key Responsibilities)</h2>
+        <div class="form-group">
+            <label>งานหลักและหน้าที่เฉพาะทาง (Specific Duties):</label>
+            <textarea id="responsibilities" class="auto-expand" readonly></textarea>
+        </div>
+
+        <!-- KPIs -->
+        <h2>4. ตัวชี้วัดผลงาน (KPIs)</h2>
+        <table class="kpi-table">
+            <thead>
+                <tr>
+                    <th>ตัวชี้วัด (KPIs)</th>
+                    <th>เป้าหมาย (Target)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input type="text" id="kpi1_name" readonly placeholder="เช่น: งานเสร็จทันเวลา"></td>
+                    <td><input type="text" id="kpi1_target" readonly placeholder="100%"></td>
+                </tr>
+                <tr>
+                    <td><input type="text" id="kpi2_name" readonly></td>
+                    <td><input type="text" id="kpi2_target" readonly></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Signatures (Preview-only) -->
+        <div class="signature-section">
+            <!-- Box 1 (Requested By) - read-only image + name -->
+            <div class="sig-box" id="sig-box-1">
+                <span class="sig-title">ผู้จัดทำ (Requested By)</span>
+                <div class="sig-area">
+                    <img id="previewSig1" class="sig-img-preview" src="" alt="Requested By signature">
+                </div>
+                <input id="SignName1" type="text" readonly class="disabled-input sig-input" placeholder="(หัวหน้างาน)">
+            </div>
+
+            <!-- Box 2 (HR) - interactive (draw/upload) -->
+            <div class="sig-box" id="sig-box-2">
+                <span class="sig-title">ผู้ตรวจสอบ (HR Dept)</span>
+                <div class="sig-controls">
+                    <label><input type="radio" name="sigType2" value="draw" checked> วาด</label>
+                    <label><input type="radio" name="sigType2" value="upload"> อัปโหลด</label>
+                </div>
+                <div class="sig-area">
+                    <canvas id="sig2" class="sig-canvas"></canvas>
+                    <div class="upload-area" style="display:none;">
+                        <input type="file" id="uploadSig2" accept="image/*" class="sig-file-input">
+                        <img id="previewSig2" class="sig-img-preview" src="">
+                    </div>
+                </div>
+                <button class="btn-clear" data-target="2">ล้าง / Reset</button>
+                <input id="SignName2" type="text" placeholder="(เจ้าหน้าที่ HR)" class="sig-input">
+            </div>
+
+            <!-- Box 3 (Approver) - read-only (no image) -->
+            <div class="sig-box" id="sig-box-3">
+                <span class="sig-title">ผู้อนุมัติ (Approved By)</span>
+                <div class="sig-area">
+                </div>
+                <input id="SignName3" type="text" readonly class="disabled-input sig-input" placeholder="(ผู้จัดการฝ่าย)" >
+            </div>
+        </div>
+
+
+        <!-- Employee Acknowledgement -->
+        <div class="ack-section">
+            <div class="ack-header">ส่วนสำหรับพนักงานลงนามรับทราบ (Employee Acknowledgement)</div>
+            <div class="ack-text">
+                ข้าพเจ้าได้รับทราบและเข้าใจรายละเอียดหน้าที่ความรับผิดชอบ (Job Description) ตามที่ระบุไว้ข้างต้นแล้ว
+                และยินดีปฏิบัติตามหน้าที่ดังกล่าว รวมถึงงานอื่นๆ ที่ได้รับมอบหมายอย่างเต็มความสามารถ
+            </div>
+
+            <div class="ack-flex">
+                <div class="ack-sig-col" id="sig-box-4">
+                    <div class="sig-area">
+                        <img id="previewSig4" class="sig-img-preview" src="" alt="Employee signature">
+                    </div>
+                </div>
+                <div class="ack-info-col">
+                    <label>ลงชื่อพนักงาน (Employee Signature):</label>
+                    <input type="text" id="employeeName" readonly class="disabled-input">
+                    <div class="input-date-wrapper">
+                        วันที่เริ่มงาน (Start Date): <input type="text" id="startDate" readonly class="disabled-input">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-rev">FM-HR-001 Rev.02 | เอกสารสำคัญห้ามเผยแพร่ภายนอก</div>
+    </div>
+
+    <script src="js/preview.js"></script>
+</body>
+
+</html>

@@ -137,12 +137,42 @@ textarea {
     font-size: 13px;
 }
 
+/* --- KPI Table Style --- */
+.kpi-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.kpi-table th,
+.kpi-table td {
+    border: 1px solid #dee2e6;
+    padding: 10px;
+    text-align: left;
+}
+
+.kpi-table th {
+    background-color: #e9ecef;
+    font-size: 14px;
+    font-weight: bold;
+    color: #495057;
+}
+
+.kpi-table input {
+    border: none;
+    background: transparent;
+    padding: 5px;
+    width: 100%;
+    font-family: 'Sarabun', sans-serif;
+}
+
 /* --- Signatures (Updated) --- */
 .signature-section { 
     display: flex; 
     justify-content: space-between; 
     gap: 15px; 
     margin-top: 30px; 
+    margin-bottom: 20px; /* เพิ่มช่องว่างด้านล่างเพื่อความสวยงาม */
     flex-wrap: wrap; 
     page-break-inside: avoid; 
 }
@@ -155,6 +185,7 @@ textarea {
     background: #fff; 
     border-radius: 8px; 
     position: relative;
+    margin-bottom: 8px; /* เว้นช่องว่างระหว่าง field */
 }
 .sig-title { 
     font-weight: bold; 
@@ -211,7 +242,7 @@ textarea {
 }
 .sig-input {
     text-align: center; 
-    margin-top: 5px;
+    margin-top: 8px; /* เพิ่มระยะห่างให้เท่ากัน */
 }
 
 /* --- Acknowledgement Section --- */
@@ -241,8 +272,11 @@ textarea {
 .ack-sig-col { flex: 1; }
 .ack-info-col { flex: 1; }
 .ack-canvas {
-    height: 80px; 
+    width: 100%;
+    height: 100%;
     background-color: white;
+    cursor: crosshair;
+    touch-action: none;
 }
 .input-name {
     margin-top: 5px;

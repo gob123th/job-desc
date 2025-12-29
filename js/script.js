@@ -74,6 +74,18 @@ $(document).ready(function () {
                 const docId = docRef.id;
                 console.log("Saved with ID:", docId);
 
+                // สร้าง preview URL และถามผู้ใช้ว่าจะเปิดหรือคัดลอกหรือไม่
+                const previewUrl = 'preview.html?id=' + docId;
+                if (confirm('บันทึกเรียบร้อย (ID: ' + docId + '). ต้องการเปิดหน้า Preview ไหม?')) {
+                    window.open(previewUrl, '_blank');
+                }
+                try {
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(previewUrl);
+                        alert('Preview URL ถูกคัดลอกไปยังคลิปบอร์ด: ' + previewUrl);
+                    }
+                } catch (e) { }
+
                 // หลัง Save เสร็จ → ส่ง Email
                 //sendEmailToHR(docId);
 
@@ -90,6 +102,18 @@ $(document).ready(function () {
     // Initialize for boxes 1, 2, 3, 4
     [1, 2, 3, 4].forEach(function (id) {
         initSignatureBox(id);
+    });
+
+    // Disable editing for HR (2) and Approver (3) — allow only Requested By (1) and Employee (4)
+    [2,3].forEach(function (id) {
+        const boxId = '#sig-box-' + id;
+        // disable mode controls and file inputs and clear button
+        $(boxId + ' .sig-controls input, ' + boxId + ' .sig-file-input, ' + boxId + ' .btn-clear').prop('disabled', true);
+        // prevent drawing on canvas
+        $(boxId + ' canvas').css('pointer-events', 'none');
+        // subtle disabled style and helpful note
+        $(boxId).css('opacity', '0.7');
+        $(boxId).append('<div class="sig-locked-note" style="color:#888;font-size:12px;margin-top:6px;">(ปิดการแก้ไขเฉพาะ HR/ผู้อนุมัติ)</div>');
     });
 });
 
@@ -262,9 +286,17 @@ function collectFormData() {
 
         signatures: {
             requestedBy: getSignatureData(1),
+            requestedByName: $('#SignName1').val() || null,
             hr: getSignatureData(2),
-            approver: getSignatureData(3)
+            hrName: $('#SignName2').val() || null,
+            approver: getSignatureData(3),
+            approverName: $('#SignName3').val() || null,
+            employee: getSignatureData(4)
         },
+        // Employee acknowledgement fields
+        employeeName: $('#employeeName').val() || null,
+        startDate: $('#startDate').val() || null,
+
 
         status: "APPLICANT_SUBMITTED",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
