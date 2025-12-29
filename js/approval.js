@@ -116,12 +116,11 @@ $(document).ready(async function () {
                 }
 
                 await docRef.update(updateData);
+                 const previewUrl = window.location.href;
+                if (window.sendEmailToHR) {
+                    sendEmailToHR(previewUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ', true).catch(() => { });
+                }
                 alert('บันทึกการอนุมัติเรียบร้อยแล้ว');
-
-                // copy preview URL to clipboard and open
-                const previewUrl = 'preview.html?id=' + docId;
-                try { if (navigator.clipboard) await navigator.clipboard.writeText(previewUrl); } catch (e) { }
-                window.open(previewUrl, '_blank');
 
             } catch (err) {
                 console.error(err);

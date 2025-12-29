@@ -57,8 +57,8 @@ $(document).ready(async function () {
         // Track cleared state for signatures (so we can delete fields if user clears)
         const clearedSigs = {};
 
-        if (sigs.requestedBy) $('#previewSig1').attr('src', sigs.requestedBy).show();;
-
+        if (sigs.requestedBy) $('#previewSig1').attr('src', sigs.requestedBy).show();
+        if (sigs.approver) $('#previewSig3').attr('src', sigs.approver).show();
         // HR signature: prefer sigs.hr, otherwise fallback to requestedBy if present
         if (sigs.hr) {
             $('#previewSig2').attr('src', sigs.hr).show();

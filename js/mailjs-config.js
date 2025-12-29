@@ -12,7 +12,7 @@ if (window.emailjs && MAILJS_CONFIG.publicKey) {
 window.MAILJS_CONFIG = MAILJS_CONFIG;
 
 // sendEmailToHR: available globally so both index and preview can call it
-window.sendEmailToHR = function (previewUrl, requesterName = null) {
+window.sendEmailToHR = function (previewUrl, requesterName = null, approved = false) {
     if (!window.emailjs || !window.MAILJS_CONFIG) {
         alert('Email service not configured. โปรดตรวจสอบ js/mailjs-config.js และ publicKey/service/template');
         window.open(previewUrl, '_blank');
@@ -27,7 +27,8 @@ window.sendEmailToHR = function (previewUrl, requesterName = null) {
     const templateParams = {
         requester_name: requesterName,
         review_url: previewUrl,
-        to_email: MAILJS_CONFIG.defaultTo
+        to_email: MAILJS_CONFIG.defaultTo,
+        Subject: (approved ? 'Approved: ' : '') + 'Kindly review and sign the JD document| ' + requesterName,
     };
 
     return emailjs.send(MAILJS_CONFIG.serviceId, MAILJS_CONFIG.templateId, templateParams)
@@ -58,7 +59,9 @@ window.sendApprovalEmail = function (previewUrl, requesterName = null) {
     const templateParams = {
         requester_name: requesterName,
         review_url: previewUrl,
-        to_email: MAILJS_CONFIG.approvalTo
+        to_email: MAILJS_CONFIG.approvalTo,
+        Subject: 'Kindly review and sign the JD document| ' + requesterName,
+
     };
 
     const tpl = MAILJS_CONFIG.approvalTemplateId || MAILJS_CONFIG.templateId;
