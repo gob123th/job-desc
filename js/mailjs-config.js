@@ -2,8 +2,8 @@ const MAILJS_CONFIG = {
     serviceId: 'service_egazmzk',  
     templateId: 'template_pn9ykcg',   
     publicKey: 'RB1kmyw8Syp8yi1P4',  
-    defaultTo: 'jirayu.assawajindakun@gmail.com',
-    approvalTo: 'jirayu.assawajindakun@gmail.com',
+    defaultTo: 'alisa.autt@gmail.com',
+    approvalTo: 'alisa.autt@gmail.com',
     approvalTemplateId: 'template_pn9ykcg'
 };
 if (window.emailjs && MAILJS_CONFIG.publicKey) {
