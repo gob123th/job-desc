@@ -170,11 +170,8 @@
         <option value="Repack Officer">
     </datalist>
 
-    <div class="no-print">
-        <div class="tips-box">
-            💡 <strong>อัปเดต:</strong> คืนค่าฟอร์มกลับมาเหมือนเดิม (มี KPI + Location) พร้อมข้อมูลถูกต้องตามสั่ง 100%
-            ครับ
-        </div>
+        <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+       
         <br>
         <button class="btn-print" onclick="window.print()">🖨️ 1. บันทึกเป็น PDF</button>
         <button class="btn-email" id="btnEmail">📧 2. ส่งอีเมลหา HR (Alisa)</button>
@@ -184,12 +181,8 @@
         <!-- ISO Header -->
         <table class="iso-header">
             <tr>
-                <td class="col-logo logo-box" id="logoContainer" title="คลิกเพื่อเลือกโลโก้">
-                    <div id="logoPlaceholder">
-                        📷 คลิกเพื่อ<br>ใส่โลโก้
-                    </div>
-                    <img id="logoPreview" src="">
-                    <input type="file" id="logoUploader" accept="image/*">
+                <td class="col-logo logo-box" id="logoContainer">
+                    <img id="logoPreview" src="img/logo.jpg" alt="Company logo">
                 </td>
                 <td class="col-title header-title">
                     แบบบรรยายลักษณะงานและข้อตกลงการทำงาน
@@ -406,8 +399,13 @@
         </div>
     </div>
 
+
     <!-- เชื่อมต่อไฟล์ JS -->
     <script src="js/script.js"></script>
+        <!-- EmailJS (mailjs) -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script src="js/mailjs-config.js"></script>
+
 </body>
 
 </html>

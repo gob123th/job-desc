@@ -14,46 +14,8 @@ $(document).ready(function () {
         this.style.height = height + 'px';
     });
 
-    // --- Logo Handling ---
-    const MY_PERMANENT_LOGO = ""; // Keep empty to allow manual upload logic
-
-    // Check permanent logo or saved logo
-    if (MY_PERMANENT_LOGO !== "") {
-        $('#logoPreview').attr('src', MY_PERMANENT_LOGO).show();
-        $('#logoPlaceholder').hide();
-    } else {
-        var savedLogo = localStorage.getItem('companyLogo_Rev05');
-        if (savedLogo) {
-            $('#logoPreview').attr('src', savedLogo).show();
-            $('#logoPlaceholder').hide();
-        }
-    }
-
-    // Logo click trigger
-    $('#logoContainer').on('click', function (e) {
-        if (MY_PERMANENT_LOGO === "") {
-            // Trigger if not clicking on the input itself (bubbling)
-            if (e.target.id !== 'logoUploader') {
-                $('#logoUploader').click();
-            }
-        }
-    });
-
-    // Logo file change
-    $('#logoUploader').on('change', function (e) {
-        if (this.files && this.files[0]) {
-            var reader = new FileReader();
-            reader.onload = function (e) {
-                var base64 = e.target.result;
-                $('#logoPreview').attr('src', base64).show();
-                $('#logoPlaceholder').hide();
-                try {
-                    localStorage.setItem('companyLogo_Rev05', base64);
-                } catch (err) { }
-            }
-            reader.readAsDataURL(this.files[0]);
-        }
-    });
+    // Set static logo
+    $('#logoPreview').attr('src', 'img/logo.jpg').show();
 
     // --- Send Email ---
     $('#btnEmail').on('click', function () {
@@ -71,23 +33,10 @@ $(document).ready(function () {
             .add(formData)
             .then(docRef => {
 
-                const docId = docRef.id;
-                console.log("Saved with ID:", docId);
-
-                // สร้าง preview URL และถามผู้ใช้ว่าจะเปิดหรือคัดลอกหรือไม่
+                        const docId = docRef.id;
                 const previewUrl = 'preview.html?id=' + docId;
-                if (confirm('บันทึกเรียบร้อย (ID: ' + docId + '). ต้องการเปิดหน้า Preview ไหม?')) {
-                    window.open(previewUrl, '_blank');
-                }
-                try {
-                    if (navigator.clipboard) {
-                        navigator.clipboard.writeText(previewUrl);
-                        alert('Preview URL ถูกคัดลอกไปยังคลิปบอร์ด: ' + previewUrl);
-                    }
-                } catch (e) { }
-
-                // หลัง Save เสร็จ → ส่ง Email
-                //sendEmailToHR(docId);
+               
+                sendEmailToHR(previewUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ');
 
             })
             .catch(err => {
@@ -351,3 +300,5 @@ function resizeImageToBase64(file, maxWidth = 400, quality = 0.7) {
         reader.readAsDataURL(file);
     });
 }
+
+// sendEmailToHR moved to js/mailjs-config.js and exposed as window.sendEmailToHR()

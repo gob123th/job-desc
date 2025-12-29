@@ -322,29 +322,21 @@ canvas {
 }
 
 /* --- Logo Box --- */
-.logo-box { 
-    cursor: pointer; 
-    transition: background 0.2s; 
-    position: relative; 
-    text-align: center; 
-}
-.logo-box:hover { background-color: #f0f0f0; }
-#logoPlaceholder {
-    color: #999; 
-    font-size: 12px; 
-    font-weight: bold;
+.logo-box {
+    transition: background 0.2s;
+    position: relative;
+    text-align: center;
 }
 #logoPreview {
-    display: none; 
-    max-width: 100%; 
-    max-height: 70px; 
-    margin: 0 auto; 
+    display: block;
+    max-width: 100%;
+    max-height: 70px;
+    margin: 0 auto;
     object-fit: contain;
 }
-#logoUploader { display: none; }
 
 /* --- Buttons --- */
-.no-print { text-align: center; margin-bottom: 30px; }
+.no-print { text-align: center;}
 
 .btn-print { 
     background-color: #28a745; 
@@ -409,6 +401,5 @@ canvas {
     input::placeholder, textarea::placeholder { color: transparent; }
     textarea { resize: none; overflow: visible; height: auto !important; border: none; border-bottom: 1px solid #ccc; }
     .fixed-clauses { background-color: transparent; border-left: 1px solid #ccc; }
-    #logoPlaceholder { display: none !important; } 
     @page { margin: 1cm; size: A4; }
 }

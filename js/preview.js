@@ -1,6 +1,13 @@
 // preview.js — load Firestore document and render preview with interactive signing for HR/Approver
-
+$(document).ready(function () {
+  $(".sig-img-preview").each(function () {
+    if (!$(this).attr("src")) {
+      $(this).hide();
+    }
+  });
+});
 $(document).ready(async function () {
+    
     // parse ?id=DOCID
     const urlParams = new URLSearchParams(window.location.search);
     const docId = urlParams.get('id');
@@ -50,22 +57,33 @@ $(document).ready(async function () {
         // Track cleared state for signatures (so we can delete fields if user clears)
         const clearedSigs = {};
 
-        if (sigs.requestedBy) $('#previewSig1').attr('src', sigs.requestedBy);
+        if (sigs.requestedBy) $('#previewSig1').attr('src', sigs.requestedBy).show();;
 
-        // HR signature: show image if exists and default to upload mode, else default to draw
+        // HR signature: prefer sigs.hr, otherwise fallback to requestedBy if present
         if (sigs.hr) {
             $('#previewSig2').attr('src', sigs.hr).show();
-            // set upload mode selected
             $('input[name="sigType2"][value="upload"]').prop('checked', true);
+            if (sigs.hrName) {
+                $('#SignName2').val(sigs.hrName);
+                $('#SignName2').prop('disabled', false).removeClass('disabled-input');
+            }
+            clearedSigs[2] = false;
+        } else if (sigs.requestedBy) {
+            // show requestedBy as HR fallback
+            $('#previewSig2').attr('src', sigs.requestedBy).show();
+            $('input[name="sigType2"][value="upload"]').prop('checked', true);
+            if (sigs.requestedByName) {
+                $('#SignName2').val(sigs.requestedByName);
+                $('#SignName2').prop('disabled', false).removeClass('disabled-input');
+            }
             clearedSigs[2] = false;
         } else {
-            // no image saved -> default to draw
             $('input[name="sigType2"][value="draw"]').prop('checked', true);
             clearedSigs[2] = false;
         }
 
         // approver: no image in preview (read-only)
-        if (sigs.employee) $('#previewSig4').attr('src', sigs.employee);
+        if (sigs.employee) $('#previewSig4').attr('src', sigs.employee).show();;
 
         // Names for signatures
         if (sigs.requestedByName) $('#SignName1').val(sigs.requestedByName);
@@ -83,12 +101,8 @@ $(document).ready(async function () {
         if (data.employeeName) $('#employeeName').val(data.employeeName);
         if (data.startDate) $('#startDate').val(data.startDate);
 
-        // Logo from localStorage
-        const savedLogo = localStorage.getItem('companyLogo_Rev05');
-        if (savedLogo) {
-            $('#logoPreview').attr('src', savedLogo).show();
-            $('#logoPlaceholder').hide();
-        }
+        // Ensure static logo is displayed
+        $('#logoPreview').attr('src', 'img/logo.jpg').show();
 
         // Disable all inputs by default and enable only HR controls
         $('input, textarea, select, button').prop('disabled', true);
@@ -141,20 +155,13 @@ $(document).ready(async function () {
 
                 const docRefToUpdate = db.collection('job_descriptions').doc(docId);
                 await docRefToUpdate.update(updateData);
-                alert('อัปเดตเอกสารเรียบร้อยแล้ว');
 
+              
+                 // Send approval email to approver (use approval mail config)
                 const previewUrl = window.location.href;
-                try {
-                    if (navigator.clipboard) {
-                        await navigator.clipboard.writeText(previewUrl);
-                        alert('Preview URL ถูกคัดลอกไปยังคลิปบอร์ด');
-                    }
-                } catch (e) { }
-
-                const position = $('#positionName').val() || '';
-                const subject = encodeURIComponent('อนุมัติ JD - ตำแหน่ง ' + position);
-                const body = encodeURIComponent('เรียน ผู้อนุมัติ,%0D%0A%0D%0Aขออนุมัติ JD: ' + previewUrl + '%0D%0A%0D%0Aขอบคุณ');
-                window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
+                if (window.sendEmailToHR) {
+                    sendEmailToHR(previewUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ').catch(() => { });
+                }
             } catch (err) {
                 console.error(err);
                 alert('เกิดข้อผิดพลาดในการอัปเดตเอกสาร');
