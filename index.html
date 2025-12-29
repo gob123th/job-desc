@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบฟอร์ม JD & Acknowledgement (Final Restored)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- jQuery CDN -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+
+    <!-- เพิ่ม CSS เฉพาะส่วน KPI กลับมา -->
+    <style>
+        /* KPI Table Style */
+        .kpi-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .kpi-table th,
+        .kpi-table td {
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .kpi-table th {
+            background-color: #e9ecef;
+            font-size: 14px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .kpi-table input {
+            border: none;
+            background: transparent;
+            padding: 5px;
+            width: 100%;
+            font-family: 'Sarabun', sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 1. Data Lists (ข้อมูลจากที่คุณเบียร์พิมพ์มาให้) -->
+    <datalist id="deptList">
+        <option value="Account">
+        <option value="Bill Collector">
+        <option value="BL - Paints">
+        <option value="BL - Plastics">
+        <option value="BL - Cosmetics & Pharmaceutical">
+        <option value="BL - Food & Basic Chemical">
+        <option value="BL - IA & Rubber">
+        <option value="BL - Instruments (BGG) & Machinery">
+        <option value="BL - Paint & Graphic Arts">
+        <option value="BU - Sugar & Water Treatment">
+        <option value="Daily Warehouse">
+        <option value="Finance">
+        <option value="General Affairs">
+        <option value="Human Resources">
+        <option value="Information Technology">
+        <option value="Laboratory">
+        <option value="Management">
+        <option value="Procurement Domestic">
+        <option value="Procurement Overseas">
+        <option value="Sales & Marketing">
+        <option value="Sales Coordinator">
+        <option value="Sales Secretary">
+        <option value="Shipping">
+        <option value="Technical Service">
+        <option value="WH - Administration">
+        <option value="WH - Delivery">
+        <option value="WH - Operation">
+        <option value="WH - Quality Control">
+    </datalist>
+
+    <datalist id="posList">
+        <option value="Account Costing Officer">
+        <option value="Account General Ledger Officer">
+        <option value="Account Manager">
+        <option value="Account Payable Officer">
+        <option value="Account Payable Supervisor">
+        <option value="Account Receivable Officer">
+        <option value="Account Receivables Supervisor">
+        <option value="Administration Officer">
+        <option value="Assistant Accounting Manager">
+        <option value="Assistant Deputy Managing Director">
+        <option value="Assistant Laboratory Manager">
+        <option value="Assistant Sales Manager">
+        <option value="Assistant Technical Officer">
+        <option value="Assistant Warehouse Manager">
+        <option value="BU Manager">
+        <option value="Business Data Analysis Officer">
+        <option value="Business Data Analysis Supervisor">
+        <option value="Business Development Director">
+        <option value="Business Line Manager">
+        <option value="Chemist">
+        <option value="Collector / Messenger">
+        <option value="Company Driver">
+        <option value="Credit Control Officer">
+        <option value="Delivery Administration Officer">
+        <option value="Delivery Officer">
+        <option value="Deputy Managing Director">
+        <option value="Document Control Center Officer">
+        <option value="Executive Secretary">
+        <option value="Finance Manager">
+        <option value="Finance Officer">
+        <option value="General Affairs Supervisor">
+        <option value="General Services/Messengers">
+        <option value="Human Resource Manager">
+        <option value="IT Manager">
+        <option value="IT Support & Security Officer">
+        <option value="Laboratory Director">
+        <option value="Laboratory Officer">
+        <option value="Managing Director">
+        <option value="Marketing Manager">
+        <option value="Marketing Officer">
+        <option value="Officer Maid">
+        <option value="Operation Manager">
+        <option value="President & CEO">
+        <option value="Procurement Manager">
+        <option value="Procurement Officer">
+        <option value="Receptionist and Operator">
+        <option value="Sales & Marketing Manager">
+        <option value="Sales Coordinator">
+        <option value="Sales Coordinator Supervisor">
+        <option value="Sales Engineer">
+        <option value="Sales Engineer Executive">
+        <option value="Sales Executive">
+        <option value="Sales Manager">
+        <option value="Sales Representative">
+        <option value="Sales Supervisor">
+        <option value="Secretary- Performance Chemicals">
+        <option value="Secretary- Speciality Chemicals">
+        <option value="Senior Admin Officer">
+        <option value="Senior Business Line Manager">
+        <option value="Senior Finance Officer">
+        <option value="Senior Human Resource Officer">
+        <option value="Senior Laboratory Officer">
+        <option value="Senior Procurement Officer">
+        <option value="Senior Programmer">
+        <option value="Senior Safety Officer">
+        <option value="Senior Sales & Marketing Manager">
+        <option value="Senior Sales Manager">
+        <option value="Senior Shipping Officer">
+        <option value="Senior System Analysis">
+        <option value="Senior Technical Service Manager">
+        <option value="Shipping Messenger">
+        <option value="Shipping Officer">
+        <option value="System Analysis Officer">
+        <option value="Technical Officer">
+        <option value="Technical Sales Executive">
+        <option value="Technical Sales Representative">
+        <option value="Technical Service Assistant Manager">
+        <option value="Technical Service Manager">
+        <option value="Technical Service Supervisor">
+        <option value="Technical Supervisor">
+        <option value="Warehouse Maid">
+        <option value="Warehouse Manager">
+        <option value="Supervisor Operation">
+        <option value="Senior Operation Officer">
+        <option value="Operation & Inventory Officer">
+        <option value="Inventory and Center Officer">
+        <option value="Repack Officer">
+    </datalist>
+
+    <div class="no-print">
+        <div class="tips-box">
+            💡 <strong>อัปเดต:</strong> คืนค่าฟอร์มกลับมาเหมือนเดิม (มี KPI + Location) พร้อมข้อมูลถูกต้องตามสั่ง 100%
+            ครับ
+        </div>
+        <br>
+        <button class="btn-print" onclick="window.print()">🖨️ 1. บันทึกเป็น PDF</button>
+        <button class="btn-email" id="btnEmail">📧 2. ส่งอีเมลหา HR (Alisa)</button>
+    </div>
+
+    <div class="container">
+        <!-- ISO Header -->
+        <table class="iso-header">
+            <tr>
+                <td class="col-logo logo-box" id="logoContainer" title="คลิกเพื่อเลือกโลโก้">
+                    <div id="logoPlaceholder">
+                        📷 คลิกเพื่อ<br>ใส่โลโก้
+                    </div>
+                    <img id="logoPreview" src="">
+                    <input type="file" id="logoUploader" accept="image/*">
+                </td>
+                <td class="col-title header-title">
+                    แบบบรรยายลักษณะงานและข้อตกลงการทำงาน
+                    <span class="header-subtitle">(Job Description & Employment Agreement)</span>
+                </td>
+                <td class="col-info header-info">
+                    <strong>รหัสเอกสาร:</strong> FM-HR-001<br>
+                    <strong>Rev:</strong> 02<br>
+                    <strong>Effective:</strong> 01/01/2025
+                </td>
+            </tr>
+        </table>
+
+        <!-- General Info -->
+        <h2>1. ข้อมูลตำแหน่งงาน (Position Info)</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>ชื่อตำแหน่ง (Position Title):</label>
+                <input type="text" id="positionName" list="posList" placeholder="พิมพ์หรือเลือกจากรายการ...">
+            </div>
+            <div class="form-group">
+                <label>แผนก/ฝ่าย (Department):</label>
+                <input type="text" id="DeptName" list="deptList" placeholder="พิมพ์หรือเลือกจากรายการ...">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>สถานที่ปฏิบัติงาน (Location):</label>
+                <input type="text" id="location" placeholder="เช่น สำนักงานใหญ่, โรงงาน, สาขา...">
+            </div>
+            <div class="form-group">
+                <label>ระดับตำแหน่ง (Level):</label>
+                <select id="level">
+                    <option value="" disabled selected>- กรุณาเลือก -</option>
+                    <option>Director / MD (ระดับบริหารระดับสูง)</option>
+                    <option>Manager (ผู้จัดการ)</option>
+                    <option>Assistant Manager (ผู้ช่วยผู้จัดการ)</option>
+                    <option>Supervisor (หัวหน้างาน)</option>
+                    <option>Senior Staff / Senior Officer (เจ้าหน้าที่อาวุโส)</option>
+                    <option>Staff / Officer (เจ้าหน้าที่ปฏิบัติการ)</option>
+                    <option>Operational / Daily (พนักงานรายวัน/ทั่วไป)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Specs -->
+        <h2>2. คุณสมบัติผู้ดำรงตำแหน่ง (Job Specifications)</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>วุฒิการศึกษา:</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" value="ปวช./ปวส."> ปวช./ปวส.
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" value="ปริญญาตรี"> ปริญญาตรี
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" value="ปริญญาโท"> ปริญญาโท
+                    </label>
+                    <input type="text" placeholder="ระบุสาขาวิชา... (เช่น บัญชี, การตลาด)" class="input-spec">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>ประสบการณ์:</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" value="0-1 ปี"> 0-1 ปี (จบใหม่)
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" value="1-3 ปี"> 1-3 ปี
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" value="3-5 ปี"> 3-5 ปี
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" value="5 ปีขึ้นไป"> 5 ปีขึ้นไป
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Responsibilities -->
+        <h2>3. หน้าที่ความรับผิดชอบ (Key Responsibilities)</h2>
+        <div class="form-group">
+            <label>งานหลักและหน้าที่เฉพาะทาง (Specific Duties):</label>
+            <textarea id="responsibilities" class="auto-expand"
+                placeholder="1. .................................................................................&#10;2. .................................................................................&#10;3. .................................................................................&#10;(ระบุเฉพาะงานหลักของตำแหน่งนั้นๆ ส่วนเรื่อง ISO และงานอื่นๆ ระบบมีระบุไว้ให้ด้านล่างแล้วครับ)"></textarea>
+
+            <div class="fixed-clauses">
+                <strong>หน้าที่ความรับผิดชอบมาตรฐาน (Standard Responsibilities):</strong>
+                <ul>
+                    <li>ให้ความร่วมมือ สนับสนุน และปฏิบัติตามข้อกำหนดของระบบบริหารคุณภาพ (ISO 9001)
+                        และระบบการจัดการสิ่งแวดล้อม (ISO 14001) อย่างเคร่งครัด</li>
+                    <li>ปฏิบัติหน้าที่อื่นๆ ตามที่ได้รับมอบหมายจากผู้บังคับบัญชา เพื่อสนับสนุนเป้าหมายขององค์กร (And
+                        other related duties as assigned by supervisor)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- KPIs (นำกลับมาแล้วครับ) -->
+        <h2>4. ตัวชี้วัดผลงาน (KPIs)</h2>
+        <table class="kpi-table">
+            <thead>
+                <tr>
+                    <th>ตัวชี้วัด (KPIs)</th>
+                    <th>เป้าหมาย (Target)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><input type="text" placeholder="เช่น: งานเสร็จทันเวลา"></td>
+                    <td><input type="text" placeholder="100%"></td>
+                </tr>
+                <tr>
+                    <td><input type="text"></td>
+                    <td><input type="text"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Signatures (Upload/Draw) -->
+        <div class="signature-section">
+            <!-- Box 1 -->
+            <div class="sig-box" id="sig-box-1">
+                <span class="sig-title">ผู้จัดทำ (Requested By)</span>
+                <div class="sig-controls no-print">
+                    <label><input type="radio" name="sigType1" value="draw" checked> วาด</label>
+                    <label><input type="radio" name="sigType1" value="upload"> อัปโหลด</label>
+                </div>
+                <div class="sig-area">
+                    <canvas id="sig1" class="sig-canvas"></canvas>
+                    <div class="upload-area" style="display:none;">
+                        <input type="file" id="uploadSig1" accept="image/*" class="sig-file-input">
+                        <img id="previewSig1" class="sig-img-preview" src="">
+                    </div>
+                </div>
+                <button class="btn-clear no-print" data-target="1">ล้าง / Reset</button>
+                <input type="text" placeholder="(หัวหน้างาน)" class="sig-input">
+            </div>
+
+            <!-- Box 2 -->
+            <div class="sig-box" id="sig-box-2">
+                <span class="sig-title">ผู้ตรวจสอบ (HR Dept)</span>
+                <div class="sig-controls no-print">
+                    <label><input type="radio" name="sigType2" value="draw" checked> วาด</label>
+                    <label><input type="radio" name="sigType2" value="upload"> อัปโหลด</label>
+                </div>
+                <div class="sig-area">
+                    <canvas id="sig2" class="sig-canvas"></canvas>
+                    <div class="upload-area" style="display:none;">
+                        <input type="file" id="uploadSig2" accept="image/*" class="sig-file-input">
+                        <img id="previewSig2" class="sig-img-preview" src="">
+                    </div>
+                </div>
+                <button class="btn-clear no-print" data-target="2">ล้าง / Reset</button>
+                <input type="text" placeholder="(เจ้าหน้าที่ HR)" class="sig-input">
+            </div>
+
+            <!-- Box 3 -->
+            <div class="sig-box" id="sig-box-3">
+                <span class="sig-title">ผู้อนุมัติ (Approved By)</span>
+                <div class="sig-controls no-print">
+                    <label><input type="radio" name="sigType3" value="draw" checked> วาด</label>
+                    <label><input type="radio" name="sigType3" value="upload"> อัปโหลด</label>
+                </div>
+                <div class="sig-area">
+                    <canvas id="sig3" class="sig-canvas"></canvas>
+                    <div class="upload-area" style="display:none;">
+                        <input type="file" id="uploadSig3" accept="image/*" class="sig-file-input">
+                        <img id="previewSig3" class="sig-img-preview" src="">
+                    </div>
+                </div>
+                <button class="btn-clear no-print" data-target="3">ล้าง / Reset</button>
+                <input type="text" placeholder="(ผู้จัดการฝ่าย)" class="sig-input">
+            </div>
+        </div>
+
+        <!-- Employee Acknowledgement -->
+        <div class="ack-section">
+            <div class="ack-header">ส่วนสำหรับพนักงานลงนามรับทราบ (Employee Acknowledgement)</div>
+            <div class="ack-text">
+                ข้าพเจ้าได้รับทราบและเข้าใจรายละเอียดหน้าที่ความรับผิดชอบ (Job Description) ตามที่ระบุไว้ข้างต้นแล้ว
+                และยินดีปฏิบัติตามหน้าที่ดังกล่าว รวมถึงงานอื่นๆ ที่ได้รับมอบหมายอย่างเต็มความสามารถ
+            </div>
+
+            <div class="ack-flex">
+                <div class="ack-sig-col" id="sig-box-4">
+                    <div class="sig-controls no-print">
+                        <label><input type="radio" name="sigType4" value="draw" checked> วาด</label>
+                        <label><input type="radio" name="sigType4" value="upload"> อัปโหลด</label>
+                    </div>
+                    <div class="sig-area">
+                        <canvas id="sig4" class="ack-canvas"></canvas>
+                        <div class="upload-area" style="display:none;">
+                            <input type="file" id="uploadSig4" accept="image/*" class="sig-file-input">
+                            <img id="previewSig4" class="sig-img-preview" src="">
+                        </div>
+                    </div>
+                    <button class="btn-clear no-print" data-target="4">ล้าง / Reset</button>
+                </div>
+                <div class="ack-info-col">
+                    <label>ลงชื่อพนักงาน (Employee Signature):</label>
+                    <input type="text" placeholder="(พิมพ์ชื่อ-นามสกุลตัวบรรจง)" class="input-name">
+                    <div class="input-date-wrapper">
+                        วันที่เริ่มงาน (Start Date): <input type="date" class="input-date">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-rev">
+            FM-HR-001 Rev.02 | เอกสารสำคัญห้ามเผยแพร่ภายนอก
+        </div>
+    </div>
+
+    <!-- เชื่อมต่อไฟล์ JS -->
+    <script src="js/script.js"></script>
+</body>
+
+</html>
