@@ -12,38 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="js/firebase-config.js"></script>
-
-    <!-- เพิ่ม CSS เฉพาะส่วน KPI กลับมา -->
-    <style>
-        /* KPI Table Style */
-        .kpi-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        .kpi-table th,
-        .kpi-table td {
-            border: 1px solid #dee2e6;
-            padding: 10px;
-            text-align: left;
-        }
-
-        .kpi-table th {
-            background-color: #e9ecef;
-            font-size: 14px;
-            font-weight: bold;
-            color: #495057;
-        }
-
-        .kpi-table input {
-            border: none;
-            background: transparent;
-            padding: 5px;
-            width: 100%;
-            font-family: 'Sarabun', sans-serif;
-        }
-    </style>
+    <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
@@ -173,8 +142,8 @@
         <div class="no-print" style="text-align: center; margin-bottom: 20px;">
        
         <br>
-        <button class="btn-print" onclick="window.print()">🖨️ 1. บันทึกเป็น PDF</button>
-        <button class="btn-email" id="btnEmail">📧 2. ส่งอีเมลหา HR (Alisa)</button>
+        <button class="btn-print" onclick="exportPDF()">🖨️ 1. บันทึกเป็น PDF</button>
+        <button class="btn-email" id="btnEmail">📧 2. ส่งอีเมลหา ผู้อนุมัติ</button>
     </div>
 
     <div class="container">
@@ -211,7 +180,11 @@
         <div class="form-row">
             <div class="form-group">
                 <label>สถานที่ปฏิบัติงาน (Location):</label>
-                <input type="text" id="location" placeholder="เช่น สำนักงานใหญ่, โรงงาน, สาขา...">
+                <select id="location">
+                    <option value="" disabled selected>- กรุณาเลือก -</option>
+                    <option value="สำนักงาน พระราม 3">สำนักงาน พระราม 3</option>
+                    <option value="คลังสินค้า">คลังสินค้า</option>
+                </select>
             </div>
             <div class="form-group">
                 <label>ระดับตำแหน่ง (Level):</label>
@@ -283,27 +256,6 @@
             </div>
         </div>
 
-        <!-- KPIs (นำกลับมาแล้วครับ) -->
-        <h2>4. ตัวชี้วัดผลงาน (KPIs)</h2>
-        <table class="kpi-table">
-            <thead>
-                <tr>
-                    <th>ตัวชี้วัด (KPIs)</th>
-                    <th>เป้าหมาย (Target)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><input type="text" placeholder="เช่น: งานเสร็จทันเวลา"></td>
-                    <td><input type="text" placeholder="100%"></td>
-                </tr>
-                <tr>
-                    <td><input type="text"></td>
-                    <td><input type="text"></td>
-                </tr>
-            </tbody>
-        </table>
-
         <!-- Signatures (Upload/Draw) -->
         <div class="signature-section">
             <!-- Box 1 -->
@@ -324,25 +276,7 @@
                 <input id="SignName1" type="text" placeholder="(หัวหน้างาน)" class="sig-input">
             </div>
 
-            <!-- Box 2 -->
-            <div class="sig-box" id="sig-box-2">
-                <span class="sig-title">ผู้ตรวจสอบ (HR Dept)</span>
-                <div class="sig-controls no-print">
-                    <label><input type="radio" name="sigType2" value="draw" checked> วาด</label>
-                    <label><input type="radio" name="sigType2" value="upload"> อัปโหลด</label>
-                </div>
-                <div class="sig-area">
-                    <canvas id="sig2" class="sig-canvas"></canvas>
-                    <div class="upload-area" style="display:none;">
-                        <input type="file" id="uploadSig2" accept="image/*" class="sig-file-input">
-                        <img id="previewSig2" class="sig-img-preview" src="">
-                    </div>
-                </div>
-                <button class="btn-clear no-print" data-target="2">ล้าง / Reset</button>
-                <input id="SignName2" type="text" placeholder="(เจ้าหน้าที่ HR)" class="sig-input">
-            </div>
-
-            <!-- Box 3 -->
+            <!-- Box 2 (Approver - ลำดับที่ 2 ในฟอร์ม) -->
             <div class="sig-box" id="sig-box-3">
                 <span class="sig-title">ผู้อนุมัติ (Approved By)</span>
                 <div class="sig-controls no-print">
@@ -358,6 +292,24 @@
                 </div>
                 <button class="btn-clear no-print" data-target="3">ล้าง / Reset</button>
                 <input id="SignName3" type="text" placeholder="(ผู้จัดการฝ่าย)" class="sig-input">
+            </div>
+
+            <!-- Box 3 (HR - ลำดับที่ 3 ในฟอร์ม) -->
+            <div class="sig-box" id="sig-box-2">
+                <span class="sig-title">ผู้ตรวจสอบ (HR Dept)</span>
+                <div class="sig-controls no-print">
+                    <label><input type="radio" name="sigType2" value="draw" checked> วาด</label>
+                    <label><input type="radio" name="sigType2" value="upload"> อัปโหลด</label>
+                </div>
+                <div class="sig-area">
+                    <canvas id="sig2" class="sig-canvas"></canvas>
+                    <div class="upload-area" style="display:none;">
+                        <input type="file" id="uploadSig2" accept="image/*" class="sig-file-input">
+                        <img id="previewSig2" class="sig-img-preview" src="">
+                    </div>
+                </div>
+                <button class="btn-clear no-print" data-target="2">ล้าง / Reset</button>
+                <input id="SignName2" type="text" placeholder="(เจ้าหน้าที่ HR)" class="sig-input">
             </div>
         </div>
 
@@ -402,6 +354,7 @@
 
     <!-- เชื่อมต่อไฟล์ JS -->
     <script src="js/script.js"></script>
+    <script src="js/pdf-export.js"></script>
         <!-- EmailJS (mailjs) -->
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script src="js/mailjs-config.js"></script>

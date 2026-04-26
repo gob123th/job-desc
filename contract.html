@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบบรรยายลักษณะงานและข้อตกลงการทำงาน</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: #e9ecef;
+            margin: 0;
+            padding: 20px;
+            color: #222;
+            font-size: 15px;
+        }
+
+        .no-print {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn-pdf {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-family: 'Sarabun', sans-serif;
+            cursor: pointer;
+            margin: 4px;
+        }
+        .btn-pdf:hover { background: #218838; }
+
+        /* ---- Document Container ---- */
+        .contract-page {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20mm 20mm 15mm 20mm;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            min-height: 297mm;
+        }
+
+        /* ---- Logo Header ---- */
+        .doc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+        }
+        .doc-header img {
+            height: 55px;
+            object-fit: contain;
+        }
+        .doc-header-center {
+            text-align: center;
+            flex: 1;
+            padding: 0 16px;
+        }
+        .doc-header-center .doc-title {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+        .doc-header-center .doc-subtitle {
+            font-size: 13px;
+        }
+        .doc-header-right {
+            font-size: 12px;
+            text-align: right;
+            line-height: 1.7;
+            white-space: nowrap;
+        }
+
+        /* ---- Document Title ---- */
+        .contract-title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 20px 0 6px;
+            text-decoration: underline;
+            letter-spacing: 1px;
+        }
+        .contract-subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: #444;
+            margin-bottom: 20px;
+        }
+
+        /* ---- Fill Line ---- */
+        .f {
+            display: inline-block;
+            border-bottom: 1px dotted #444;
+            min-width: 100px;
+            padding: 0 6px 1px;
+            text-align: center;
+            vertical-align: bottom;
+            font-weight: 600;
+            color: #000;
+        }
+        .f-sm  { min-width: 70px; }
+        .f-md  { min-width: 140px; }
+        .f-lg  { min-width: 220px; }
+        .f-xl  { min-width: 300px; }
+        .f-full { min-width: 100%; display: block; margin-top: 2px; }
+
+        /* ---- Paragraph body ---- */
+        .body-para {
+            line-height: 2;
+            margin-bottom: 10px;
+            text-align: justify;
+        }
+
+        /* ---- Section ---- */
+        .section {
+            margin-top: 18px;
+        }
+        .section-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
+        }
+        .section-sub {
+            font-weight: 700;
+            margin: 10px 0 4px;
+        }
+        .section-body {
+            line-height: 2;
+            text-align: justify;
+        }
+
+        /* ---- Responsibilities list ---- */
+        .duties-list {
+            margin: 0;
+            padding-left: 20px;
+            line-height: 2;
+        }
+        .duties-list li { margin-bottom: 2px; }
+
+        /* ---- KPI Table ---- */
+        .kpi-tbl {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+        .kpi-tbl th, .kpi-tbl td {
+            border: 1px solid #888;
+            padding: 7px 12px;
+        }
+        .kpi-tbl th {
+            background: #f0f0f0;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        /* ---- Standard duties ---- */
+        .std-duties {
+            background: #f8f9fa;
+            border-left: 3px solid #0056b3;
+            padding: 10px 14px;
+            margin-top: 10px;
+            font-size: 14px;
+            line-height: 1.9;
+        }
+
+        /* ---- Acknowledgement box ---- */
+        .ack-box {
+            border: 1px solid #000;
+            padding: 14px 18px;
+            margin-top: 22px;
+            line-height: 2;
+        }
+        .ack-box-title {
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 15px;
+            text-decoration: underline;
+        }
+
+        /* ---- Signature Grid ---- */
+        .sig-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 28px;
+        }
+        .sig-cell {
+            text-align: center;
+            font-size: 13px;
+        }
+        .sig-cell .sig-img-area {
+            border: 1px dashed #aaa;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        .sig-cell .sig-img-area img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+        .sig-cell .sig-name {
+            border-top: 1px solid #333;
+            padding-top: 4px;
+            font-weight: 600;
+            min-height: 20px;
+        }
+        .sig-cell .sig-role {
+            font-size: 12px;
+            color: #555;
+        }
+
+        /* ---- Footer ---- */
+        .doc-footer {
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 8px;
+        }
+
+        /* ---- Print / PDF ---- */
+        @media print {
+            body { background: white; padding: 0; }
+            .contract-page { box-shadow: none; padding: 10mm 14mm; }
+            .no-print { display: none !important; }
+            @page { size: A4; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <button class="btn-pdf" onclick="exportContractPDF()">🖨️ บันทึกเป็น PDF</button>
+</div>
+
+<div class="contract-page" id="contractPage">
+
+    <!-- Header -->
+    <div class="doc-header">
+        <img src="img/logo.jpg" alt="Logo">
+        <div class="doc-header-center">
+            <div class="doc-title">แบบบรรยายลักษณะงานและข้อตกลงการทำงาน</div>
+            <div class="doc-subtitle">(Job Description &amp; Employment Agreement)</div>
+        </div>
+        <div class="doc-header-right">
+            <strong>รหัสเอกสาร:</strong> FM-HR-001<br>
+            <strong>Rev:</strong> 02<br>
+            <strong>Effective:</strong> 01/01/2025
+        </div>
+    </div>
+
+    <!-- Contract Title -->
+    <div class="contract-title">แบบบรรยายลักษณะงาน</div>
+    <div class="contract-subtitle">(Job Description)</div>
+
+    <!-- Opening paragraph -->
+    <p class="body-para">
+        เอกสารฉบับนี้จัดทำขึ้นสำหรับตำแหน่ง
+        <span class="f f-lg" id="c-position"></span>
+        ฝ่าย / แผนก <span class="f f-md" id="c-dept"></span>
+        ปฏิบัติงาน ณ <span class="f f-md" id="c-location"></span>
+        ระดับตำแหน่ง <span class="f f-md" id="c-level"></span>
+    </p>
+    <p class="body-para">
+        พนักงาน ชื่อ-นามสกุล
+        <span class="f f-lg" id="c-empName"></span>
+        วันที่เริ่มงาน
+        <span class="f f-md" id="c-startDate"></span>
+    </p>
+
+    <!-- Section 1: Job Specs -->
+    <div class="section">
+        <div class="section-title">1. คุณสมบัติผู้ดำรงตำแหน่ง (Job Specifications)</div>
+        <p class="section-body">
+            <span class="section-sub">วุฒิการศึกษา: </span>
+            <span class="f f-lg" id="c-edu"></span>
+            &nbsp;&nbsp;
+            <span class="section-sub">ประสบการณ์: </span>
+            <span class="f f-md" id="c-exp"></span>
+        </p>
+    </div>
+
+    <!-- Section 2: Responsibilities -->
+    <div class="section">
+        <div class="section-title">2. หน้าที่ความรับผิดชอบหลัก (Key Responsibilities)</div>
+        <div class="section-sub" style="margin-bottom:4px;">2.1 งานหลักและหน้าที่เฉพาะทาง (Specific Duties):</div>
+        <ol class="duties-list" id="c-duties"></ol>
+
+        <div class="std-duties">
+            <strong>2.2 หน้าที่ความรับผิดชอบมาตรฐาน (Standard Responsibilities):</strong><br>
+            • ให้ความร่วมมือ สนับสนุน และปฏิบัติตามข้อกำหนดของระบบบริหารคุณภาพ (ISO 9001)
+              และระบบการจัดการสิ่งแวดล้อม (ISO 14001) อย่างเคร่งครัด<br>
+            • ปฏิบัติหน้าที่อื่นๆ ตามที่ได้รับมอบหมายจากผู้บังคับบัญชา เพื่อสนับสนุนเป้าหมายขององค์กร
+              (And other related duties as assigned by supervisor)
+        </div>
+    </div>
+
+    <!-- Acknowledgement -->
+    <div class="ack-box">
+        <div class="ack-box-title">ข้อตกลงและการรับทราบ (Acknowledgement)</div>
+        <p class="section-body">
+            ข้าพเจ้า <span class="f f-lg" id="c-empName2"></span> ตำแหน่ง
+            <span class="f f-md" id="c-position2"></span>
+            ได้รับทราบและเข้าใจรายละเอียดหน้าที่ความรับผิดชอบ (Job Description)
+            ตามที่ระบุไว้ข้างต้นแล้ว และยินดีปฏิบัติตามหน้าที่ดังกล่าว รวมถึงงานอื่นๆ
+            ที่ได้รับมอบหมายอย่างเต็มความสามารถ
+        </p>
+        <p class="section-body">
+            วันที่เริ่มงาน <span class="f f-md" id="c-startDate2"></span>
+            &nbsp;&nbsp;สถานที่ปฏิบัติงาน <span class="f f-md" id="c-location2"></span>
+        </p>
+    </div>
+
+    <!-- Signatures -->
+    <div class="sig-grid">
+        <!-- Requested By -->
+        <div class="sig-cell">
+            <div class="sig-img-area">
+                <img id="cSig1" src="" alt="sig1">
+            </div>
+            <div class="sig-name" id="cName1">&nbsp;</div>
+            <div class="sig-role">ผู้จัดทำ (Requested By)</div>
+        </div>
+        <!-- Approver -->
+        <div class="sig-cell">
+            <div class="sig-img-area">
+                <img id="cSig3" src="" alt="sig3">
+            </div>
+            <div class="sig-name" id="cName3">&nbsp;</div>
+            <div class="sig-role">ผู้อนุมัติ (Approved By)</div>
+        </div>
+        <!-- HR -->
+        <div class="sig-cell">
+            <div class="sig-img-area">
+                <img id="cSig2" src="" alt="sig2">
+            </div>
+            <div class="sig-name" id="cName2">&nbsp;</div>
+            <div class="sig-role">ผู้ตรวจสอบ (HR Dept)</div>
+        </div>
+        <!-- Employee -->
+        <div class="sig-cell">
+            <div class="sig-img-area">
+                <img id="cSig4" src="" alt="sig4">
+            </div>
+            <div class="sig-name" id="cName4">&nbsp;</div>
+            <div class="sig-role">พนักงาน (Employee)</div>
+        </div>
+    </div>
+
+    <div class="doc-footer">FM-HR-001 Rev.02 &nbsp;|&nbsp; เอกสารสำคัญห้ามเผยแพร่ภายนอก</div>
+
+</div><!-- end contract-page -->
+
+<script src="js/contract.js"></script>
+</body>
+</html>

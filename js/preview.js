@@ -44,14 +44,6 @@ $(document).ready(async function () {
             $('#experienceText').val(exp.length ? exp.join(', ') : '');
         } catch (e) { }
 
-        // KPIs
-        if (Array.isArray(data.kpis)) {
-            $('#kpi1_name').val(data.kpis[0] ? data.kpis[0].name || '' : '');
-            $('#kpi1_target').val(data.kpis[0] ? data.kpis[0].target || '' : '');
-            $('#kpi2_name').val(data.kpis[1] ? data.kpis[1].name || '' : '');
-            $('#kpi2_target').val(data.kpis[1] ? data.kpis[1].target || '' : '');
-        }
-
         // Signatures
         const sigs = data.signatures || {};
         // Track cleared state for signatures (so we can delete fields if user clears)
@@ -61,29 +53,23 @@ $(document).ready(async function () {
         if (sigs.approver) $('#previewSig3').attr('src', sigs.approver).show();
         // HR signature: prefer sigs.hr, otherwise fallback to requestedBy if present
         if (sigs.hr) {
+            // HR previously signed — show in upload mode
             $('#previewSig2').attr('src', sigs.hr).show();
             $('input[name="sigType2"][value="upload"]').prop('checked', true);
             if (sigs.hrName) {
                 $('#SignName2').val(sigs.hrName);
                 $('#SignName2').prop('disabled', false).removeClass('disabled-input');
             }
-            clearedSigs[2] = false;
-        } else if (sigs.requestedBy) {
-            // show requestedBy as HR fallback
-            $('#previewSig2').attr('src', sigs.requestedBy).show();
-            $('input[name="sigType2"][value="upload"]').prop('checked', true);
-            if (sigs.requestedByName) {
-                $('#SignName2').val(sigs.requestedByName);
-                $('#SignName2').prop('disabled', false).removeClass('disabled-input');
-            }
-            clearedSigs[2] = false;
         } else {
+            // HR hasn't signed yet — default to draw mode (empty canvas)
             $('input[name="sigType2"][value="draw"]').prop('checked', true);
-            clearedSigs[2] = false;
         }
+        clearedSigs[2] = false;
 
-        // approver: no image in preview (read-only)
-        if (sigs.employee) $('#previewSig4').attr('src', sigs.employee).show();;
+        // Approver signature from Step 2 (read-only)
+        if (sigs.approverName) $('#SignName3').val(sigs.approverName);
+        // Employee signature carried over from Step 1 (read-only)
+        if (sigs.employee) $('#previewSig4').attr('src', sigs.employee).show();
 
         // Names for signatures
         if (sigs.requestedByName) $('#SignName1').val(sigs.requestedByName);
@@ -107,7 +93,7 @@ $(document).ready(async function () {
         // Disable all inputs by default and enable only HR controls
         $('input, textarea, select, button').prop('disabled', true);
         // enable HR draw/upload controls and name input
-        $('#sig-box-2 input, #uploadSig2, #sig-box-2 .btn-clear, #SignName2, #btnEmail').prop('disabled', false);
+        $('#sig-box-2 input, #uploadSig2, #sig-box-2 .btn-clear, #SignName2, #btnEmail, #btnPDF').prop('disabled', false);
         // allow HR canvas interactions
         $('#sig-box-2 canvas').css('pointer-events', 'auto');
 
@@ -117,9 +103,9 @@ $(document).ready(async function () {
         // Initialize interactive signature box for HR (2) only
         [2].forEach(function (id) { initSignatureBox(id); });
 
-        // BtnEmail: save signatures (if any) and update existing document, then open mailto with preview link
+        // BtnEmail: save HR signature and mark document COMPLETED
         $('#btnEmail').on('click', async function () {
-            if (!confirm('ยืนยันส่งเอกสารและอีเมลหา ผู้อนุมัติ?')) return;
+            if (!confirm('ยืนยันบันทึกลายเซ็น HR และเสร็จสิ้นกระบวนการ?')) return;
             try {
                 // collect signatures and names
                 const hrSig = getSignatureData(2);
@@ -128,8 +114,8 @@ $(document).ready(async function () {
                 const apprName = $('#SignName3').val() || null;
 
                 const updateData = {
-                    status: 'SENT_TO_APPROVER',
-                    sentAt: firebase.firestore.FieldValue.serverTimestamp()
+                    status: 'COMPLETED',
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
                 const cleared = $(document).data('clearedSigs') || {};
@@ -155,13 +141,7 @@ $(document).ready(async function () {
 
                 const docRefToUpdate = db.collection('job_descriptions').doc(docId);
                 await docRefToUpdate.update(updateData);
-
-              
-                 // Send approval email to approver (use approval mail config)
-                const previewUrl = window.location.href;
-                if (window.sendEmailToHR) {
-                    sendEmailToHR(previewUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ').catch(() => { });
-                }
+                alert('บันทึกลายเซ็น HR เรียบร้อย เอกสาร JD อนุมัติเสร็จสมบูรณ์แล้ว');
             } catch (err) {
                 console.error(err);
                 alert('เกิดข้อผิดพลาดในการอัปเดตเอกสาร');

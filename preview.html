@@ -11,6 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="js/firebase-config.js"></script>
+    <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <style>
         /* Preview specific tweaks */
         /* show controls on-screen (hidden only in print) */
@@ -25,8 +26,8 @@
 
 <body>
             <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-            <button class="btn-print" onclick="window.print()">🖨️ 1. บันทึกเป็น PDF</button>
-            <button class="btn-email" id="btnEmail">📧 2. ส่งอีเมลหา ผู้อนุมัติ</button>
+            <button class="btn-print" id="btnPDF" onclick="exportPDF()">🖨️ 1. บันทึกเป็น PDF</button>
+            <button class="btn-email" id="btnEmail">✅ 2. บันทึกลายเซ็น HR และเสร็จสิ้น</button>
         </div>
     <div class="container">
      
@@ -95,27 +96,6 @@
             <textarea id="responsibilities" class="auto-expand" readonly></textarea>
         </div>
 
-        <!-- KPIs -->
-        <h2>4. ตัวชี้วัดผลงาน (KPIs)</h2>
-        <table class="kpi-table">
-            <thead>
-                <tr>
-                    <th>ตัวชี้วัด (KPIs)</th>
-                    <th>เป้าหมาย (Target)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><input type="text" id="kpi1_name" readonly placeholder="เช่น: งานเสร็จทันเวลา"></td>
-                    <td><input type="text" id="kpi1_target" readonly placeholder="100%"></td>
-                </tr>
-                <tr>
-                    <td><input type="text" id="kpi2_name" readonly></td>
-                    <td><input type="text" id="kpi2_target" readonly></td>
-                </tr>
-            </tbody>
-        </table>
-
         <!-- Signatures (Preview-only) -->
         <div class="signature-section">
             <!-- Box 1 (Requested By) - read-only image + name -->
@@ -127,7 +107,16 @@
                 <input id="SignName1" type="text" readonly class="disabled-input sig-input" placeholder="(หัวหน้างาน)">
             </div>
 
-            <!-- Box 2 (HR) - interactive (draw/upload) -->
+            <!-- Box 3 (Approver) - read-only, shows sig from approval step -->
+            <div class="sig-box" id="sig-box-3">
+                <span class="sig-title">ผู้อนุมัติ (Approved By)</span>
+                <div class="sig-area">
+                    <img id="previewSig3" class="sig-img-preview" src="" alt="Approver signature">
+                </div>
+                <input id="SignName3" type="text" readonly class="disabled-input sig-input" placeholder="(ผู้จัดการฝ่าย)">
+            </div>
+
+            <!-- Box 2 (HR) - interactive (draw/upload), HR signs here -->
             <div class="sig-box" id="sig-box-2">
                 <span class="sig-title">ผู้ตรวจสอบ (HR Dept)</span>
                 <div class="sig-controls">
@@ -143,15 +132,6 @@
                 </div>
                 <button class="btn-clear" data-target="2">ล้าง / Reset</button>
                 <input id="SignName2" type="text" placeholder="(เจ้าหน้าที่ HR)" class="sig-input">
-            </div>
-
-            <!-- Box 3 (Approver) - read-only (no image) -->
-            <div class="sig-box" id="sig-box-3">
-                <span class="sig-title">ผู้อนุมัติ (Approved By)</span>
-                <div class="sig-area">
-                    <img id="previewSig3" class="sig-img-preview" src="" alt="Requested By signature">
-                </div>
-                <input id="SignName3" type="text" readonly class="disabled-input sig-input" placeholder="(ผู้จัดการฝ่าย)" >
             </div>
         </div>
 
@@ -186,6 +166,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script src="js/mailjs-config.js"></script>
     <script src="js/preview.js"></script>
+    <script src="js/pdf-export.js"></script>
 </body>
 
 </html>

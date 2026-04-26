@@ -38,17 +38,12 @@ $(document).ready(async function () {
             $('#experienceText').val(exp.length ? exp.join(', ') : '');
         } catch (e) {}
 
-        // KPIs
-        if (Array.isArray(data.kpis)) {
-            $('#kpi1_name').val(data.kpis[0] ? data.kpis[0].name || '' : '');
-            $('#kpi1_target').val(data.kpis[0] ? data.kpis[0].target || '' : '');
-            $('#kpi2_name').val(data.kpis[1] ? data.kpis[1].name || '' : '');
-            $('#kpi2_target').val(data.kpis[1] ? data.kpis[1].target || '' : '');
-        }
-
         // Requested By
         if (sigs.requestedBy) $('#previewSig1').attr('src', sigs.requestedBy).show();
         if (sigs.requestedByName) $('#SignName1').val(sigs.requestedByName);
+
+        // Employee signature carried over from Step 1
+        if (sigs.employee) $('#previewSig4').attr('src', sigs.employee).show();
 
         // HR signature: prefer sigs.hr, otherwise fallback to requestedBy
         if (sigs.hr) {
@@ -77,7 +72,7 @@ $(document).ready(async function () {
 
         // By default inputs are readonly; enable approver controls
         $('input, textarea, select, button').prop('disabled', true);
-        $('#sig-box-3 input, #uploadSig3, #sig-box-3 .btn-clear, #SignName3, #btnApprove').prop('disabled', false);
+        $('#sig-box-3 input, #uploadSig3, #sig-box-3 .btn-clear, #SignName3, #btnApprove, #btnPDF').prop('disabled', false);
         $('#sig-box-3 canvas').css('pointer-events', 'auto');
 
         // Initialize approver signature box (3)
@@ -116,9 +111,9 @@ $(document).ready(async function () {
                 }
 
                 await docRef.update(updateData);
-                 const previewUrl = window.location.href;
+                const previewUrl = 'preview.html?id=' + docId;
                 if (window.sendEmailToHR) {
-                    sendEmailToHR(previewUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ', true).catch(() => { });
+                    sendEmailToHR(previewUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ', true).catch(() => { console.warn('Email send failed'); });
                 }
                 alert('บันทึกการอนุมัติเรียบร้อยแล้ว');
 

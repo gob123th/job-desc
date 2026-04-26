@@ -5,10 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Chrome",
+            "request": "launch",
+            "type": "chrome",
+            "url": "http://127.0.0.1:5500",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
             "type": "chrome",
             "request": "launch",
             "name": "Open preview.html",
-            "file": "d:\\Beer\\job-desc\\preview.html"
+            "file": "/Users/11511151/Sourcecode/job-desc/index.html"
         }
     ]
 }

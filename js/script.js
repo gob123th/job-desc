@@ -17,6 +17,45 @@ $(document).ready(function () {
     // Set static logo
     $('#logoPreview').attr('src', 'img/logo.jpg').show();
 
+    // --- Auto Numbering for Responsibilities ---
+    const $resp = $('#responsibilities');
+
+    // On focus: if empty, seed with "1. "
+    $resp.on('focus', function () {
+        if ($(this).val().trim() === '') {
+            $(this).val('1. ');
+            // trigger auto-expand
+            $(this).trigger('input');
+        }
+    });
+
+    // On keydown Enter: insert next number
+    $resp.on('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+
+        const textarea = this;
+        const val = textarea.value;
+        const pos = textarea.selectionStart;
+
+        // Find the current line
+        const lineStart = val.lastIndexOf('\n', pos - 1) + 1;
+        const currentLine = val.substring(lineStart, pos);
+
+        // Extract current number (e.g. "3. ..." → 3)
+        const match = currentLine.match(/^(\d+)\. /);
+        const nextNum = match ? parseInt(match[1], 10) + 1 : null;
+
+        const insertion = nextNum !== null ? '\n' + nextNum + '. ' : '\n';
+
+        textarea.value = val.substring(0, pos) + insertion + val.substring(pos);
+        const newPos = pos + insertion.length;
+        textarea.selectionStart = textarea.selectionEnd = newPos;
+
+        // trigger auto-expand
+        $resp.trigger('input');
+    });
+
     // --- Send Email ---
     $('#btnEmail').on('click', function () {
         // var position = $('#positionName').val() || "ไม่ระบุตำแหน่ง";
@@ -34,9 +73,9 @@ $(document).ready(function () {
             .then(docRef => {
 
                         const docId = docRef.id;
-                const previewUrl = 'preview.html?id=' + docId;
+                const approvalUrl = 'approval.html?id=' + docId;
                
-                sendEmailToHR(previewUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ');
+                sendApprovalEmail(approvalUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ');
 
             })
             .catch(err => {
@@ -44,7 +83,6 @@ $(document).ready(function () {
                 console.error(err);
             });
 
-        collectFormData(); // For debugging
     });
 
     // --- Signature System Logic (Draw vs Upload) ---
@@ -221,17 +259,6 @@ function collectFormData() {
         education: eduExp.education,
         experience: eduExp.experience,
         responsibilities: $("#responsibilities").val(),
-
-        kpis: [
-            {
-                name: $(".kpi-table tbody tr:eq(0) td:eq(0) input").val(),
-                target: $(".kpi-table tbody tr:eq(0) td:eq(1) input").val()
-            },
-            {
-                name: $(".kpi-table tbody tr:eq(1) td:eq(0) input").val(),
-                target: $(".kpi-table tbody tr:eq(1) td:eq(1) input").val()
-            }
-        ],
 
         signatures: {
             requestedBy: getSignatureData(1),
