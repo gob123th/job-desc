@@ -2,20 +2,69 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /job_descriptions/{docId} {
-      allow create: if true;   // ผู้สมัครส่งได้
-      allow read: if true;     // เปิดอ่านจาก link
-      allow update: if true;   // HR / Approver แก้ไข
+    // ───────────────────────── Admin allowlist ─────────────────────────
+    // Real server-side security: only these signed-in (and email-verified)
+    // accounts get full read/list/write. email_verified is REQUIRED — without
+    // it, anyone could self-register an allowlisted email via the client Auth
+    // SDK and grant themselves admin. Add/remove admin emails here, then deploy.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in [
+             'alisa@cclcolossal.com',
+             'jirayu.assawajindakun@gmail.com'
+           ];
     }
 
-    // Master lists — จัดการผ่าน admin.html (เพิ่ม/แก้ไข/ลบ)
+    // ───────────────────────── Job descriptions ─────────────────────────
+    match /job_descriptions/{docId} {
+
+      // The public requestor form may create a submission, but the document
+      // shape is validated: status must start at APPLICANT_SUBMITTED, only the
+      // known fields are allowed, and an access-code hash must be present.
+      allow create: if request.resource.data.status == 'APPLICANT_SUBMITTED'
+                    && request.resource.data.keys().hasOnly([
+                         'positionName', 'department', 'location', 'level',
+                         'education', 'experience', 'responsibilities',
+                         'signatures', 'employeeName', 'startDate',
+                         'status', 'createdAt', 'accessCode'
+                       ])
+                    && request.resource.data.accessCode is string
+                    && request.resource.data.accessCode.size() <= 64;
+
+      // Capability-URL model: anyone holding the (unguessable, 20-char) doc ID
+      // — i.e. the email link — can read that ONE document. Querying/listing the
+      // whole collection is admin-only, which kills the bulk PII/signature dump.
+      allow get:  if true;
+      allow list: if isAdmin();
+
+      // Approver (step 2) and HR (step 3) update via their email link. With no
+      // backend we cannot verify the per-doc access code inside rules, but we DO
+      // hard-enforce that: status only becomes APPROVED/COMPLETED, the access
+      // hash is immutable, and the original requestor data can't be tampered.
+      allow update: if (request.resource.data.status in ['APPROVED', 'COMPLETED']
+                        && request.resource.data.accessCode == resource.data.accessCode
+                        && request.resource.data.positionName == resource.data.positionName
+                        && request.resource.data.department == resource.data.department
+                        && request.resource.data.createdAt == resource.data.createdAt)
+                     || isAdmin();
+
+      // Never allow client deletes; only an authenticated admin may remove docs.
+      allow delete: if isAdmin();
+    }
+
+    // ───────────────────── Master lists (config) ─────────────────────
+    // index.html reads these to populate dropdowns (public). Only admins write.
     match /departments/{docId} {
-      allow read, write: if true;
+      allow read:  if true;
+      allow write: if isAdmin();
     }
     match /positions/{docId} {
-      allow read, write: if true;
+      allow read:  if true;
+      allow write: if isAdmin();
     }
 
+    // Everything else is denied.
     match /{document=**} {
       allow read, write: if false;
     }

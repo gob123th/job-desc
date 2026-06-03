@@ -28,6 +28,14 @@ $(document).ready(async function () {
 
         const data = doc.data();
 
+        // Per-document access gate: require the code from the email before showing
+        // data (signed-in admins bypass this automatically).
+        const accessCode = await window.JDAccess.unlock(data.accessCode);
+        if (accessCode === null) {
+            $('.preview-note').html('🔒 ต้องใช้รหัสเข้าถึงเอกสาร — กรุณาเปิดลิงก์จากอีเมลและกรอกรหัสที่ถูกต้อง');
+            return;
+        }
+
         // Basic fields
         $('#positionName').val(data.positionName || '');
         $('#DeptName').val(data.department || '');
@@ -123,8 +131,13 @@ $(document).ready(async function () {
             $('#sig-box-2').removeClass('invalid');
             $('#sig-box-2 .sig-error').remove();
 
-            if (!confirm('ยืนยันบันทึกลายเซ็น HR และเสร็จสิ้นกระบวนการ?')) return;
+            const confirmed = await JDUI.confirm('ระบบจะบันทึกลายเซ็น HR และทำเครื่องหมายว่าเอกสารนี้เสร็จสมบูรณ์', {
+                title: 'ยืนยันการลงนาม HR',
+                okText: 'บันทึกและเสร็จสิ้น'
+            });
+            if (!confirmed) return;
             try {
+                JDUI.loading.show('กำลังบันทึกลายเซ็นและอัปเดตเอกสาร');
                 const apprSig = getSignatureData(3); // likely null since approver read-only
                 const hrName = $('#SignName2').val() || null;
                 const apprName = $('#SignName3').val() || null;
@@ -157,10 +170,12 @@ $(document).ready(async function () {
 
                 const docRefToUpdate = db.collection('job_descriptions').doc(docId);
                 await docRefToUpdate.update(updateData);
-                alert('บันทึกลายเซ็น HR เรียบร้อย เอกสาร JD อนุมัติเสร็จสมบูรณ์แล้ว');
+                JDUI.loading.hide();
+                JDUI.success('บันทึกลายเซ็น HR เรียบร้อยแล้ว เอกสาร JD เสร็จสมบูรณ์', { title: 'เสร็จสมบูรณ์' });
             } catch (err) {
                 console.error(err);
-                alert('เกิดข้อผิดพลาดในการอัปเดตเอกสาร');
+                JDUI.loading.hide();
+                JDUI.error('เกิดข้อผิดพลาดในการอัปเดตเอกสาร กรุณาลองใหม่อีกครั้ง', { title: 'อัปเดตไม่สำเร็จ' });
             }
         });
 
@@ -255,7 +270,9 @@ $(document).ready(async function () {
         // File Upload logic
         $(uploadInputId).on('change', async function () {
             if (!this.files || !this.files[0]) return;
-            const resizedBase64 = await resizeImageToBase64(this.files[0], 400, 0.8);
+            const file = this.files[0];
+            if (window.validateSignatureFile && !window.validateSignatureFile(file)) { this.value = ''; return; }
+            const resizedBase64 = await resizeImageToBase64(file, 400, 0.8);
             $(previewId).attr('src', resizedBase64).show();
             // mark as not cleared when user uploads
             const cleared = $(document).data('clearedSigs') || {};

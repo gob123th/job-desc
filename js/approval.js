@@ -4,7 +4,7 @@ $(document).ready(async function () {
     const urlParams = new URLSearchParams(window.location.search);
     const docId = urlParams.get('id');
     if (!docId) {
-        alert('ไม่พบ id ของเอกสารใน URL — ให้ใส่ ?id=DOCUMENT_ID');
+        JDUI.error('ไม่พบรหัสเอกสาร (id) ใน URL — กรุณาเปิดลิงก์จากอีเมลอีกครั้ง', { title: 'ไม่พบเอกสาร' });
         return;
     }
 
@@ -15,11 +15,23 @@ $(document).ready(async function () {
     try {
         const doc = await docRef.get();
         if (!doc.exists) {
-            alert('ไม่พบเอกสารที่ระบุ (ID:' + docId + ')');
+            JDUI.error('ไม่พบเอกสารที่ระบุ (ID: ' + docId + ')', { title: 'ไม่พบเอกสาร' });
             return;
         }
 
         const data = doc.data();
+
+        // Per-document access gate: require the code from the email before showing
+        // any data (signed-in admins bypass this automatically).
+        const accessCode = await window.JDAccess.unlock(data.accessCode);
+        if (accessCode === null) {
+            document.body.innerHTML =
+                '<div style="max-width:520px;margin:80px auto;font-family:Sarabun,sans-serif;text-align:center;color:#444;">' +
+                '<h2>🔒 ต้องใช้รหัสเข้าถึงเอกสาร</h2>' +
+                '<p>กรุณาเปิดลิงก์จากอีเมลอีกครั้งและกรอกรหัสที่ถูกต้องเพื่อดูเอกสารนี้</p></div>';
+            return;
+        }
+
         const sigs = data.signatures || {};
 
         // Basic fields
@@ -106,8 +118,13 @@ $(document).ready(async function () {
             $('#sig-box-3').removeClass('invalid');
             $('#sig-box-3 .sig-error').remove();
 
-            if (!confirm('ยืนยันการอนุมัติและบันทึกเอกสาร?')) return;
+            const confirmed = await JDUI.confirm('ระบบจะบันทึกการอนุมัติของคุณและส่งอีเมลแจ้งฝ่าย HR', {
+                title: 'ยืนยันการอนุมัติ',
+                okText: 'อนุมัติ'
+            });
+            if (!confirmed) return;
             try {
+                JDUI.loading.show('กำลังบันทึกการอนุมัติ');
                 const apprName = $('#SignName3').val() || null;
 
                 const updateData = {
@@ -127,20 +144,25 @@ $(document).ready(async function () {
                 }
 
                 await docRef.update(updateData);
+                JDUI.loading.hide();
                 const previewUrl = 'preview.html?id=' + docId;
                 if (window.sendEmailToHR) {
-                    sendEmailToHR(previewUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ', true).catch(() => { console.warn('Email send failed'); });
+                    // Forward the document's access code so HR can unlock too.
+                    // The email sender shows its own loading overlay + success/error dialog.
+                    sendEmailToHR(previewUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ', true, data.accessCode).catch(() => { console.warn('Email send failed'); });
+                } else {
+                    JDUI.success('บันทึกการอนุมัติเรียบร้อยแล้ว', { title: 'อนุมัติสำเร็จ' });
                 }
-                alert('บันทึกการอนุมัติเรียบร้อยแล้ว');
 
             } catch (err) {
                 console.error(err);
-                alert('เกิดข้อผิดพลาดในการบันทึกการอนุมัติ (ดูคอนโซล)');
+                JDUI.loading.hide();
+                JDUI.error('เกิดข้อผิดพลาดในการบันทึกการอนุมัติ กรุณาลองใหม่อีกครั้ง', { title: 'บันทึกไม่สำเร็จ' });
             }
         });
 
     } catch (err) {
         console.error(err);
-        alert('เกิดข้อผิดพลาดในการโหลดเอกสาร (ดูคอนโซล)');
+        JDUI.error('เกิดข้อผิดพลาดในการโหลดเอกสาร กรุณาลองใหม่อีกครั้ง', { title: 'โหลดเอกสารไม่สำเร็จ' });
     }
 });

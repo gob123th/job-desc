@@ -2,15 +2,14 @@
 // Each item is its own Firestore document; add / edit / delete persist immediately.
 // Shared data helpers live in js/config-loader.js (window.JDConfig).
 //
-// NOTE: This is a static site with no backend. The credentials below are visible in the
-// page source and Firestore is writable from the client — this gate only keeps casual
-// users out, it is NOT real security. Use Firebase Auth + Security Rules for that.
+// AUTH: real Firebase Email/Password authentication. The matching account must
+// exist in Firebase Auth AND its email must be on the allowlist inside
+// firestore.rules (isAdmin) AND be email-verified — Firestore enforces this
+// server-side, so a stolen page source no longer grants any access.
 (function () {
     'use strict';
 
-    const ADMIN_USER = 'admin';
-    const ADMIN_PASS = 'B!ere@42378';
-    const SESSION_KEY = 'jd_admin_auth';
+    const auth = firebase.auth();
 
     const DOCS = ['departments', 'positions'];
 
@@ -38,25 +37,60 @@
         loadSubs();
     }
 
-    function handleLogin(e) {
-        e.preventDefault();
-        const u = $('#adminUser').val();
-        const p = $('#adminPass').val();
-        if (u === ADMIN_USER && p === ADMIN_PASS) {
-            sessionStorage.setItem(SESSION_KEY, '1');
-            $('#loginError').text('');
-            $('#adminPass').val('');
-            showAdmin();
-        } else {
-            $('#loginError').text('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    function showLogin(msg) {
+        $('#adminScreen').removeClass('show');
+        $('#loginScreen').show();
+        if (msg) {
+            $('#loginError').text(msg);
             $('.login-card').addClass('shake');
             setTimeout(function () { $('.login-card').removeClass('shake'); }, 500);
         }
     }
 
+    function loginFailed(msg) {
+        $('#loginBtn').prop('disabled', false);
+        showLogin(msg);
+    }
+
+    function handleLogin(e) {
+        e.preventDefault();
+        const email = ($('#adminUser').val() || '').trim();
+        const pass = $('#adminPass').val() || '';
+        $('#loginError').text('');
+        $('#loginBtn').prop('disabled', true);
+
+        auth.signInWithEmailAndPassword(email, pass)
+            .then(function (cred) {
+                $('#adminPass').val('');
+                // Allowlist + email-verified are enforced server-side by
+                // firestore.rules. If the email isn't verified yet, send the user a
+                // verification link (we're still signed in here so we can), then sign out.
+                if (cred.user && cred.user.emailVerified === false) {
+                    const u = cred.user;
+                    return u.sendEmailVerification()
+                        .then(function () {
+                            return auth.signOut().then(function () {
+                                loginFailed('ส่งลิงก์ยืนยันไปที่ ' + email + ' แล้ว กรุณาเปิดอีเมล กดลิงก์ยืนยัน แล้วเข้าสู่ระบบใหม่อีกครั้ง');
+                            });
+                        })
+                        .catch(function (err) {
+                            console.error('sendEmailVerification failed', err);
+                            return auth.signOut().then(function () {
+                                loginFailed('อีเมลนี้ยังไม่ได้ยืนยัน และส่งลิงก์ยืนยันไม่สำเร็จ (ดูคอนโซล)');
+                            });
+                        });
+                }
+                $('#loginBtn').prop('disabled', false);
+                // onAuthStateChanged will reveal the admin screen.
+            })
+            .catch(function (err) {
+                console.error('Login failed', err);
+                loginFailed('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+            });
+    }
+
     function logout() {
-        sessionStorage.removeItem(SESSION_KEY);
-        location.reload();
+        auth.signOut().then(function () { location.reload(); });
     }
 
     // ---------- Helpers ----------
@@ -104,7 +138,7 @@
             return !filter || o.name.toLowerCase().indexOf(filter) !== -1;
         });
         if (!visible.length) {
-            $('<li class="empty">ไม่พบรายการที่ตรงกับ “' + filter + '”</li>').appendTo($list);
+            $('<li class="empty"></li>').text('ไม่พบรายการที่ตรงกับ “' + filter + '”').appendTo($list);
             return;
         }
 
@@ -191,15 +225,21 @@
         const $c = $card(type);
         const item = state[type].find(function (i) { return i.id === id; });
         if (!item) return;
-        if (!confirm('ลบ "' + item.name + '" ?')) return;
-
-        status($c, 'กำลังลบ...', '');
-        window.JDConfig.deleteItem(type, id).then(function () {
-            state[type] = state[type].filter(function (i) { return i.id !== id; });
-            render(type);
-            flash($c, '✓ ลบ "' + item.name + '" แล้ว', 'ok');
-        }).catch(function (err) {
-            flash($c, 'ลบไม่สำเร็จ: ' + err.message, 'err');
+        JDUI.confirm('ต้องการลบ "' + item.name + '" ออกจากรายการใช่หรือไม่?', {
+            title: 'ยืนยันการลบ',
+            okText: 'ลบ',
+            danger: true,
+            variant: 'warning'
+        }).then(function (ok) {
+            if (!ok) return;
+            status($c, 'กำลังลบ...', '');
+            window.JDConfig.deleteItem(type, id).then(function () {
+                state[type] = state[type].filter(function (i) { return i.id !== id; });
+                render(type);
+                flash($c, '✓ ลบ "' + item.name + '" แล้ว', 'ok');
+            }).catch(function (err) {
+                flash($c, 'ลบไม่สำเร็จ: ' + err.message, 'err');
+            });
         });
     }
 
@@ -343,8 +383,14 @@
             seedCard($(this).closest('.card').data('doc'));
         });
 
-        if (sessionStorage.getItem(SESSION_KEY) === '1') {
-            showAdmin();
-        }
+        // Drive the UI off Firebase Auth state. Persists across reloads via
+        // Firebase's own session, and any rule rejection still blocks data access.
+        auth.onAuthStateChanged(function (user) {
+            if (user && user.emailVerified) {
+                showAdmin();
+            } else {
+                showLogin();
+            }
+        });
     });
 })();

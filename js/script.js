@@ -60,7 +60,7 @@ $(document).ready(function () {
     const formValidator = setupFormValidation();
 
     // --- Send Email ---
-    $('#btnEmail').on('click', function () {
+    $('#btnEmail').on('click', async function () {
         // Validate every field; reveal inline errors and jump to the first problem.
         const $firstInvalid = formValidator.validateAll();
         if ($firstInvalid) {
@@ -71,23 +71,35 @@ $(document).ready(function () {
 
         const approverEmail = ($('#approverEmail').val() || '').trim();
 
-        if (!confirm("ยืนยันส่งข้อมูลและอีเมลไปยัง " + approverEmail + " ?")) return;
+        const confirmed = await JDUI.confirm('ระบบจะบันทึกข้อมูลและส่งอีเมลขออนุมัติไปยัง ' + approverEmail, {
+            title: 'ยืนยันการส่งเอกสาร',
+            okText: 'ส่งเลย'
+        });
+        if (!confirmed) return;
 
         const formData = collectFormData();
 
+        // Generate a per-document access code. Stored on the doc (reads are already
+        // capability-based) and emailed with the link so each step can unlock.
+        const accessCode = window.JDAccess.generateCode(8);
+        formData.accessCode = accessCode;
+
         // ===== Save to Firestore =====
+        JDUI.loading.show('กำลังบันทึกข้อมูลเอกสาร');
         db.collection("job_descriptions")
             .add(formData)
             .then(docRef => {
 
-                        const docId = docRef.id;
+                JDUI.loading.hide();
+                const docId = docRef.id;
                 const approvalUrl = 'approval.html?id=' + docId;
 
-                sendApprovalEmail(approvalUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ', approverEmail);
+                sendApprovalEmail(approvalUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ', approverEmail, accessCode);
 
             })
             .catch(err => {
-                alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+                JDUI.loading.hide();
+                JDUI.error('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง', { title: 'บันทึกไม่สำเร็จ' });
                 console.error(err);
             });
 
@@ -204,8 +216,11 @@ function initSignatureBox(id) {
     $(uploadInputId).on("change", async function () {
         if (!this.files || !this.files[0]) return;
 
+        const file = this.files[0];
+        if (!validateSignatureFile(file)) { this.value = ''; return; }
+
         const resizedBase64 = await resizeImageToBase64(
-            this.files[0],
+            file,
             200,     // max width
             0.5      // quality
         );
@@ -441,6 +456,22 @@ function isCanvasBlank(canvas) {
     );
     return !pixelBuffer.some(color => color !== 0);
 }
+
+// Reject non-images and oversized uploads before they ever hit the canvas / Firestore.
+// Returns true when the file is acceptable, otherwise alerts and returns false.
+function validateSignatureFile(file) {
+    const MAX_BYTES = 5 * 1024 * 1024; // 5 MB before client-side resize
+    if (!file.type.startsWith('image/')) {
+        JDUI.warning('กรุณาเลือกไฟล์รูปภาพเท่านั้น (เช่น JPG หรือ PNG)', { title: 'ไฟล์ไม่ถูกต้อง' });
+        return false;
+    }
+    if (file.size > MAX_BYTES) {
+        JDUI.warning('ไฟล์มีขนาดใหญ่เกินไป (เกิน 5MB) กรุณาเลือกไฟล์ที่เล็กลง', { title: 'ไฟล์ใหญ่เกินไป' });
+        return false;
+    }
+    return true;
+}
+window.validateSignatureFile = validateSignatureFile;
 
 function resizeImageToBase64(file, maxWidth = 400, quality = 0.7) {
     return new Promise((resolve) => {

@@ -13,18 +13,30 @@ $(document).ready(async function () {
     const docId = urlParams.get('id');
 
     if (!docId) {
-        alert('ไม่พบ id ของเอกสารใน URL — ให้ใส่ ?id=DOCUMENT_ID');
+        JDUI.error('ไม่พบรหัสเอกสาร (id) ใน URL — กรุณาเปิดลิงก์จากอีเมลอีกครั้ง', { title: 'ไม่พบเอกสาร' });
         return;
     }
 
     try {
         const doc = await db.collection('job_descriptions').doc(docId).get();
         if (!doc.exists) {
-            alert('ไม่พบเอกสารที่ระบุ (ID: ' + docId + ')');
+            JDUI.error('ไม่พบเอกสารที่ระบุ (ID: ' + docId + ')', { title: 'ไม่พบเอกสาร' });
             return;
         }
 
         const data = doc.data();
+
+        // Per-document access gate: require the code from the email before showing
+        // data (signed-in admins bypass this automatically).
+        const accessCode = await window.JDAccess.unlock(data.accessCode);
+        if (accessCode === null) {
+            document.body.innerHTML =
+                '<div style="max-width:520px;margin:80px auto;font-family:Sarabun,sans-serif;text-align:center;color:#444;">' +
+                '<h2>🔒 ต้องใช้รหัสเข้าถึงเอกสาร</h2>' +
+                '<p>กรุณาเปิดลิงก์จากอีเมลอีกครั้งและกรอกรหัสที่ถูกต้องเพื่อดูเอกสารนี้</p></div>';
+            return;
+        }
+
         const sigs = data.signatures || {};
 
         // ---- Basic fields ----
@@ -75,6 +87,6 @@ $(document).ready(async function () {
 
     } catch (err) {
         console.error(err);
-        alert('เกิดข้อผิดพลาดในการโหลดเอกสาร');
+        JDUI.error('เกิดข้อผิดพลาดในการโหลดเอกสาร กรุณาลองใหม่อีกครั้ง', { title: 'โหลดเอกสารไม่สำเร็จ' });
     }
 });

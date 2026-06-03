@@ -31,52 +31,63 @@ function sendViaGas(payload) {
         });
 }
 
-// sendEmailToHR: available globally so both index and preview can call it
-window.sendEmailToHR = function (previewUrl, requesterName = null, approved = false) {
+// sendEmailToHR: available globally so both index and preview can call it.
+// accessCode (optional) is the per-document unlock code; include it so the
+// recipient can open the gated page.
+window.sendEmailToHR = function (previewUrl, requesterName = null, approved = false, accessCode = null) {
     if (!requesterName) {
         try { requesterName = $('#SignName1').val() || ''; } catch (e) { requesterName = ''; }
     }
 
+    if (window.JDUI) JDUI.loading.show('กำลังส่งอีเมลไปยังฝ่าย HR');
     return sendViaGas({
         to: MAILJS_CONFIG.defaultTo,
         requester_name: requesterName,
         review_url: previewUrl,
+        access_code: accessCode || '',
         subject: (approved ? 'Approved: ' : '') + 'Kindly review and sign the JD document| ' + requesterName
     })
         .then(function (response) {
             console.log('Email sent', response);
-            alert('อีเมลส่งเรียบร้อยแล้วไปยัง ' + MAILJS_CONFIG.defaultTo);
+            if (window.JDUI) JDUI.loading.hide();
+            if (window.JDUI) JDUI.success('อีเมลถูกส่งเรียบร้อยแล้วไปยัง ' + MAILJS_CONFIG.defaultTo, { title: 'ส่งอีเมลสำเร็จ' });
             return response;
         })
         .catch(function (err) {
             console.error('Error sending email', err);
-            alert('เกิดข้อผิดพลาดในการส่งอีเมล (ดูคอนโซล)');
+            if (window.JDUI) JDUI.loading.hide();
+            if (window.JDUI) JDUI.error('ไม่สามารถส่งอีเมลได้ กรุณาลองใหม่อีกครั้ง (ดูรายละเอียดในคอนโซล)', { title: 'ส่งอีเมลไม่สำเร็จ' });
             throw err;
         });
 };
 
-// sendApprovalEmail: sends to approver. Pass toEmail to override the default recipient.
-window.sendApprovalEmail = function (previewUrl, requesterName = null, toEmail = null) {
+// sendApprovalEmail: sends to approver. Pass toEmail to override the default
+// recipient, and accessCode to include the per-document unlock code.
+window.sendApprovalEmail = function (previewUrl, requesterName = null, toEmail = null, accessCode = null) {
     if (!requesterName) {
         try { requesterName = $('#SignName1').val() || ''; } catch (e) { requesterName = ''; }
     }
 
     const recipient = toEmail?.trim() || MAILJS_CONFIG.approvalTo;
 
+    if (window.JDUI) JDUI.loading.show('กำลังส่งอีเมลเพื่อขออนุมัติ');
     return sendViaGas({
         to: recipient,
         requester_name: requesterName,
         review_url: previewUrl,
+        access_code: accessCode || '',
         subject: 'Kindly review and sign the JD document| ' + requesterName
     })
         .then(function (response) {
             console.log('Approval email sent', response);
-            alert('อีเมล (สำหรับอนุมัติ) ถูกส่งไปยัง ' + recipient);
+            if (window.JDUI) JDUI.loading.hide();
+            if (window.JDUI) JDUI.success('อีเมลสำหรับขออนุมัติถูกส่งไปยัง ' + recipient + ' เรียบร้อยแล้ว', { title: 'ส่งอีเมลสำเร็จ' });
             return response;
         })
         .catch(function (err) {
             console.error('Error sending approval email', err);
-            alert('เกิดข้อผิดพลาดในการส่งอีเมลอนุมัติ (ดูคอนโซล)');
+            if (window.JDUI) JDUI.loading.hide();
+            if (window.JDUI) JDUI.error('ไม่สามารถส่งอีเมลขออนุมัติได้ กรุณาลองใหม่อีกครั้ง (ดูรายละเอียดในคอนโซล)', { title: 'ส่งอีเมลไม่สำเร็จ' });
             throw err;
         });
 };

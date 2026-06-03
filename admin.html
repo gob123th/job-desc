@@ -8,8 +8,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="js/firebase-config.js"></script>
+    <script src="js/ui-dialog.js"></script>
     <script src="js/config-loader.js"></script>
 
     <style>
@@ -236,14 +238,14 @@
             <div class="sub">ระบบจัดการ Job Description</div>
             <form id="loginForm" autocomplete="off">
                 <div class="field">
-                    <label for="adminUser">ชื่อผู้ใช้</label>
-                    <input type="text" id="adminUser" class="input" autocomplete="username" required>
+                    <label for="adminUser">อีเมล</label>
+                    <input type="email" id="adminUser" class="input" autocomplete="username" required>
                 </div>
                 <div class="field">
                     <label for="adminPass">รหัสผ่าน</label>
                     <input type="password" id="adminPass" class="input" autocomplete="current-password" required>
                 </div>
-                <button type="submit" class="btn btn-primary">เข้าสู่ระบบ</button>
+                <button type="submit" class="btn btn-primary" id="loginBtn">เข้าสู่ระบบ</button>
                 <div id="loginError"></div>
             </form>
         </div>
