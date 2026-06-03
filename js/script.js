@@ -56,14 +56,22 @@ $(document).ready(function () {
         $resp.trigger('input');
     });
 
+    // --- Realtime field validation (inline red border + message under field) ---
+    const formValidator = setupFormValidation();
+
     // --- Send Email ---
     $('#btnEmail').on('click', function () {
-        // var position = $('#positionName').val() || "ไม่ระบุตำแหน่ง";
-        // var email = "alisa@cclcolossal.com";
-        // var subject = "อนุมัติ JD - ตำแหน่ง " + position;
-        // var body = "เรียน คุณเบียร์ (HR)%0D%0A%0D%0Aขอส่งไฟล์ JD ที่ตรวจสอบและลงนามเรียบร้อยแล้ว ดังแนบ%0D%0A%0D%0A(กรุณาแนบไฟล์ PDF ที่เซ็นแล้วมาในเมลนี้)%0D%0A%0D%0Aขอบคุณครับ/ค่ะ";
-        // window.location.href = "mailto:" + email + "?subject=" + subject + "&body=" + body;
-        if (!confirm("ยืนยันส่งข้อมูลและอีเมล?")) return;
+        // Validate every field; reveal inline errors and jump to the first problem.
+        const $firstInvalid = formValidator.validateAll();
+        if ($firstInvalid) {
+            $('html, body').animate({ scrollTop: $firstInvalid.offset().top - 90 }, 300);
+            $firstInvalid.find('input, select, textarea').filter(':visible').first().trigger('focus');
+            return;
+        }
+
+        const approverEmail = ($('#approverEmail').val() || '').trim();
+
+        if (!confirm("ยืนยันส่งข้อมูลและอีเมลไปยัง " + approverEmail + " ?")) return;
 
         const formData = collectFormData();
 
@@ -74,8 +82,8 @@ $(document).ready(function () {
 
                         const docId = docRef.id;
                 const approvalUrl = 'approval.html?id=' + docId;
-               
-                sendApprovalEmail(approvalUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ');
+
+                sendApprovalEmail(approvalUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ', approverEmail);
 
             })
             .catch(err => {
@@ -248,6 +256,136 @@ function collectEducationAndExperience() {
         experience: experience
     };
 }
+// Realtime, inline field validation.
+// Each field shows a red border + a message under it once "touched" (blurred once),
+// then re-checks live as the user edits. Returns a controller with validateAll().
+function setupFormValidation() {
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const fields = [];
+
+    // Register a standard input/select/textarea field.
+    // rule() returns an error message string, or '' when the value is valid.
+    function register($input, rule, opts) {
+        opts = opts || {};
+        if (!$input.length) return;
+
+        const $wrapper = opts.wrapper || $input.closest('.form-group');
+        let $error = opts.error;
+        if (!$error || !$error.length) {
+            $error = $('<p class="field-error"></p>');
+            $input.after($error);
+        }
+
+        let touched = false;
+        function evaluate() {
+            const msg = rule();
+            $error.text(msg);
+            $wrapper.toggleClass('invalid', !!msg).toggleClass('valid', !msg);
+            return !msg;
+        }
+
+        $input.on('blur change', function () { touched = true; evaluate(); });
+        $input.on('input', function () { if (touched) evaluate(); });
+
+        fields.push({
+            $wrapper: $wrapper,
+            force: function () { touched = true; return evaluate(); }
+        });
+    }
+
+    register($('#positionName'), function () {
+        return $('#positionName').val().trim() ? '' : 'กรุณากรอกชื่อตำแหน่ง';
+    });
+    register($('#DeptName'), function () {
+        return $('#DeptName').val().trim() ? '' : 'กรุณากรอกแผนก/ฝ่าย';
+    });
+    register($('#location'), function () {
+        return $('#location').val() ? '' : 'กรุณาเลือกสถานที่ปฏิบัติงาน';
+    });
+    register($('#level'), function () {
+        return $('#level').val() ? '' : 'กรุณาเลือกระดับตำแหน่ง';
+    });
+    register($('#responsibilities'), function () {
+        return $('#responsibilities').val().trim() ? '' : 'กรุณากรอกหน้าที่ความรับผิดชอบ';
+    });
+    register($('#employeeName'), function () {
+        return $('#employeeName').val().trim() ? '' : 'กรุณากรอกชื่อพนักงาน';
+    }, { wrapper: $('.ack-info-col') });
+    register($('#startDate'), function () {
+        return $('#startDate').val() ? '' : 'กรุณาเลือกวันที่เริ่มงาน';
+    }, { wrapper: $('.input-date-wrapper') });
+    register($('#approverEmail'), function () {
+        const v = ($('#approverEmail').val() || '').trim();
+        if (!v) return 'กรุณากรอกอีเมลผู้อนุมัติ';
+        if (!EMAIL_RE.test(v)) return 'รูปแบบอีเมลไม่ถูกต้อง (เช่น example@company.com)';
+        return '';
+    }, { wrapper: $('#approverEmailField'), error: $('#approverEmailError') });
+
+    // Requester signature (box 1): a canvas/upload widget plus the name field
+    // underneath it — both must be filled in, so it needs custom wiring.
+    (function () {
+        const $box = $('#sig-box-1');
+        if (!$box.length) return;
+        const $error = $('<p class="field-error"></p>').appendTo($box);
+        const $name = $('#SignName1');
+        let touched = false;
+
+        function evaluate() {
+            let msg = '';
+            if (!getSignatureData(1)) msg = 'กรุณาลงลายเซ็นผู้จัดทำ';
+            else if (!$name.val().trim()) msg = 'กรุณากรอกชื่อผู้จัดทำใต้ลายเซ็น';
+            $error.text(msg);
+            $box.toggleClass('invalid', !!msg).toggleClass('valid', !msg);
+            return !msg;
+        }
+        // Re-check after the user draws, uploads, or clears the signature, or edits the name.
+        $('#sig1').on('mouseup touchend', function () { if (touched) setTimeout(evaluate, 0); });
+        $('#uploadSig1').on('change', function () { if (touched) setTimeout(evaluate, 60); });
+        $('#sig-box-1 .btn-clear').on('click', function () { if (touched) setTimeout(evaluate, 0); });
+        $name.on('blur change input', function () { if (touched) evaluate(); });
+
+        fields.push({
+            $wrapper: $box,
+            force: function () { touched = true; return evaluate(); }
+        });
+    })();
+
+    // Employee signature (box 4): acknowledgement signature, same custom wiring.
+    (function () {
+        const $box = $('#sig-box-4');
+        if (!$box.length) return;
+        const $error = $('<p class="field-error"></p>').appendTo($box);
+        let touched = false;
+
+        function evaluate() {
+            const msg = getSignatureData(4) ? '' : 'กรุณาลงลายเซ็นพนักงาน';
+            $error.text(msg);
+            $box.toggleClass('invalid', !!msg).toggleClass('valid', !msg);
+            return !msg;
+        }
+        // Re-check after the user draws, uploads, or clears the signature.
+        $('#sig4').on('mouseup touchend', function () { if (touched) setTimeout(evaluate, 0); });
+        $('#uploadSig4').on('change', function () { if (touched) setTimeout(evaluate, 60); });
+        $('#sig-box-4 .btn-clear').on('click', function () { if (touched) setTimeout(evaluate, 0); });
+
+        fields.push({
+            $wrapper: $box,
+            force: function () { touched = true; return evaluate(); }
+        });
+    })();
+
+    return {
+        // Force-validate everything; returns the first invalid wrapper ($) or null.
+        validateAll: function () {
+            let $first = null;
+            fields.forEach(function (f) {
+                if (!f.force() && !$first) $first = f.$wrapper;
+            });
+            return $first;
+        }
+    };
+}
+
 function collectFormData() {
     const eduExp = collectEducationAndExperience();
 

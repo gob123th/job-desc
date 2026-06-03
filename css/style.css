@@ -85,7 +85,7 @@ label {
     color: #495057; 
 }
 
-input[type="text"], input[type="date"], select, textarea {
+input[type="text"], input[type="date"], input[type="email"], select, textarea {
     width: 100%; 
     padding: 10px; 
     border: 1px solid #ced4da; 
@@ -372,9 +372,115 @@ canvas {
     margin-left: 10px; 
     transition: 0.3s; 
 }
-.btn-email:hover { 
-    background-color: #0056b3; 
-    transform: translateY(-2px); 
+.btn-email:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+}
+
+/* --- Bottom action zone (submit card) --- */
+.action-bar {
+    max-width: 540px;
+    margin: 28px auto 44px;
+    padding: 0 16px;
+}
+.action-card {
+    background: #ffffff;
+    border: 1px solid #e6e8eb;
+    border-radius: 14px;
+    padding: 26px 28px;
+    box-shadow: 0 6px 20px rgba(16, 24, 40, 0.07);
+    text-align: left;
+}
+.action-card .field {
+    margin-bottom: 22px;
+}
+.action-card label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #344054;
+    margin-bottom: 8px;
+}
+.action-card label .req {
+    color: #d92d20;
+    margin-left: 2px;
+}
+.action-card label .label-hint {
+    font-weight: 400;
+    color: #98a2b3;
+    margin-left: 4px;
+}
+.action-card .input-wrap {
+    position: relative;
+}
+.action-card input[type="email"] {
+    padding: 12px 14px;
+    border: 1px solid #d0d5dd;
+    border-radius: 9px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+.action-card input[type="email"]:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+    background: #fff;
+    outline: none;
+}
+
+/* --- Realtime validation states (shared by action card + form fields) --- */
+.field-error {
+    margin: 6px 2px 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #d92d20;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.field-error::before {
+    content: "⚠";
+    font-size: 12px;
+}
+.field-error:empty {
+    display: none;
+}
+
+/* Invalid: red border + soft red glow */
+.invalid > input[type="text"],
+.invalid > input[type="email"],
+.invalid > input[type="date"],
+.invalid > select,
+.invalid > textarea,
+.invalid .input-wrap input[type="email"] {
+    border-color: #d92d20 !important;
+    box-shadow: 0 0 0 4px rgba(217, 45, 32, 0.12);
+}
+.invalid .sig-area {
+    border-color: #d92d20;
+}
+
+/* Valid: green border confirmation */
+.valid > input[type="text"],
+.valid > input[type="email"],
+.valid > input[type="date"],
+.valid > select,
+.valid > textarea,
+.valid .input-wrap input[type="email"] {
+    border-color: #12b76a !important;
+    box-shadow: 0 0 0 4px rgba(18, 183, 106, 0.12);
+}
+.valid .sig-area {
+    border-color: #12b76a;
+}
+
+/* Buttons row inside the action card */
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+}
+.action-buttons .btn-email {
+    margin-left: 0;
 }
 
 .tips-box { 

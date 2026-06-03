@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /job_descriptions/{docId} {
+      allow create: if true;   // ผู้สมัครส่งได้
+      allow read: if true;     // เปิดอ่านจาก link
+      allow update: if true;   // HR / Approver แก้ไข
+    }
+
+    // Master lists — จัดการผ่าน admin.html (เพิ่ม/แก้ไข/ลบ)
+    match /departments/{docId} {
+      allow read, write: if true;
+    }
+    match /positions/{docId} {
+      allow read, write: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

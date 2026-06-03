@@ -89,9 +89,25 @@ $(document).ready(async function () {
 
         // Approve button: save approver signature and status
         $('#btnApprove').on('click', async function () {
+            const apprSig = getSignatureData(3);
+
+            // Step 2 requires the approver to sign AND fill the name underneath.
+            let stepError = '';
+            if (!apprSig) stepError = 'กรุณาลงลายเซ็นผู้อนุมัติ';
+            else if (!($('#SignName3').val() || '').trim()) stepError = 'กรุณากรอกชื่อผู้อนุมัติใต้ลายเซ็น';
+
+            if (stepError) {
+                $('#sig-box-3').addClass('invalid');
+                $('#sig-box-3 .sig-error').remove();
+                $('#sig-box-3').append('<p class="field-error sig-error">' + stepError + '</p>');
+                $('html, body').animate({ scrollTop: $('#sig-box-3').offset().top - 90 }, 300);
+                return;
+            }
+            $('#sig-box-3').removeClass('invalid');
+            $('#sig-box-3 .sig-error').remove();
+
             if (!confirm('ยืนยันการอนุมัติและบันทึกเอกสาร?')) return;
             try {
-                const apprSig = getSignatureData(3);
                 const apprName = $('#SignName3').val() || null;
 
                 const updateData = {

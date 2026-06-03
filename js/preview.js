@@ -105,10 +105,26 @@ $(document).ready(async function () {
 
         // BtnEmail: save HR signature and mark document COMPLETED
         $('#btnEmail').on('click', async function () {
+            // collect signatures and names
+            const hrSig = getSignatureData(2);
+
+            // Step 3 requires HR to sign AND fill the name underneath.
+            let stepError = '';
+            if (!hrSig) stepError = 'กรุณาลงลายเซ็น HR';
+            else if (!($('#SignName2').val() || '').trim()) stepError = 'กรุณากรอกชื่อ HR ใต้ลายเซ็น';
+
+            if (stepError) {
+                $('#sig-box-2').addClass('invalid');
+                $('#sig-box-2 .sig-error').remove();
+                $('#sig-box-2').append('<p class="field-error sig-error">' + stepError + '</p>');
+                $('html, body').animate({ scrollTop: $('#sig-box-2').offset().top - 90 }, 300);
+                return;
+            }
+            $('#sig-box-2').removeClass('invalid');
+            $('#sig-box-2 .sig-error').remove();
+
             if (!confirm('ยืนยันบันทึกลายเซ็น HR และเสร็จสิ้นกระบวนการ?')) return;
             try {
-                // collect signatures and names
-                const hrSig = getSignatureData(2);
                 const apprSig = getSignatureData(3); // likely null since approver read-only
                 const hrName = $('#SignName2').val() || null;
                 const apprName = $('#SignName3').val() || null;

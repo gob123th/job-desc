@@ -12,139 +12,17 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="js/firebase-config.js"></script>
+    <script src="js/config-loader.js"></script>
     <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
 
     <!-- 1. Data Lists (ข้อมูลจากที่คุณเบียร์พิมพ์มาให้) -->
-    <datalist id="deptList">
-        <option value="Account">
-        <option value="Bill Collector">
-        <option value="BL - Paints">
-        <option value="BL - Plastics">
-        <option value="BL - Cosmetics & Pharmaceutical">
-        <option value="BL - Food & Basic Chemical">
-        <option value="BL - IA & Rubber">
-        <option value="BL - Instruments (BGG) & Machinery">
-        <option value="BL - Paint & Graphic Arts">
-        <option value="BU - Sugar & Water Treatment">
-        <option value="Daily Warehouse">
-        <option value="Finance">
-        <option value="General Affairs">
-        <option value="Human Resources">
-        <option value="Information Technology">
-        <option value="Laboratory">
-        <option value="Management">
-        <option value="Procurement Domestic">
-        <option value="Procurement Overseas">
-        <option value="Sales & Marketing">
-        <option value="Sales Coordinator">
-        <option value="Sales Secretary">
-        <option value="Shipping">
-        <option value="Technical Service">
-        <option value="WH - Administration">
-        <option value="WH - Delivery">
-        <option value="WH - Operation">
-        <option value="WH - Quality Control">
-    </datalist>
-
-    <datalist id="posList">
-        <option value="Account Costing Officer">
-        <option value="Account General Ledger Officer">
-        <option value="Account Manager">
-        <option value="Account Payable Officer">
-        <option value="Account Payable Supervisor">
-        <option value="Account Receivable Officer">
-        <option value="Account Receivables Supervisor">
-        <option value="Administration Officer">
-        <option value="Assistant Accounting Manager">
-        <option value="Assistant Deputy Managing Director">
-        <option value="Assistant Laboratory Manager">
-        <option value="Assistant Sales Manager">
-        <option value="Assistant Technical Officer">
-        <option value="Assistant Warehouse Manager">
-        <option value="BU Manager">
-        <option value="Business Data Analysis Officer">
-        <option value="Business Data Analysis Supervisor">
-        <option value="Business Development Director">
-        <option value="Business Line Manager">
-        <option value="Chemist">
-        <option value="Collector / Messenger">
-        <option value="Company Driver">
-        <option value="Credit Control Officer">
-        <option value="Delivery Administration Officer">
-        <option value="Delivery Officer">
-        <option value="Deputy Managing Director">
-        <option value="Document Control Center Officer">
-        <option value="Executive Secretary">
-        <option value="Finance Manager">
-        <option value="Finance Officer">
-        <option value="General Affairs Supervisor">
-        <option value="General Services/Messengers">
-        <option value="Human Resource Manager">
-        <option value="IT Manager">
-        <option value="IT Support & Security Officer">
-        <option value="Laboratory Director">
-        <option value="Laboratory Officer">
-        <option value="Managing Director">
-        <option value="Marketing Manager">
-        <option value="Marketing Officer">
-        <option value="Officer Maid">
-        <option value="Operation Manager">
-        <option value="President & CEO">
-        <option value="Procurement Manager">
-        <option value="Procurement Officer">
-        <option value="Receptionist and Operator">
-        <option value="Sales & Marketing Manager">
-        <option value="Sales Coordinator">
-        <option value="Sales Coordinator Supervisor">
-        <option value="Sales Engineer">
-        <option value="Sales Engineer Executive">
-        <option value="Sales Executive">
-        <option value="Sales Manager">
-        <option value="Sales Representative">
-        <option value="Sales Supervisor">
-        <option value="Secretary- Performance Chemicals">
-        <option value="Secretary- Speciality Chemicals">
-        <option value="Senior Admin Officer">
-        <option value="Senior Business Line Manager">
-        <option value="Senior Finance Officer">
-        <option value="Senior Human Resource Officer">
-        <option value="Senior Laboratory Officer">
-        <option value="Senior Procurement Officer">
-        <option value="Senior Programmer">
-        <option value="Senior Safety Officer">
-        <option value="Senior Sales & Marketing Manager">
-        <option value="Senior Sales Manager">
-        <option value="Senior Shipping Officer">
-        <option value="Senior System Analysis">
-        <option value="Senior Technical Service Manager">
-        <option value="Shipping Messenger">
-        <option value="Shipping Officer">
-        <option value="System Analysis Officer">
-        <option value="Technical Officer">
-        <option value="Technical Sales Executive">
-        <option value="Technical Sales Representative">
-        <option value="Technical Service Assistant Manager">
-        <option value="Technical Service Manager">
-        <option value="Technical Service Supervisor">
-        <option value="Technical Supervisor">
-        <option value="Warehouse Maid">
-        <option value="Warehouse Manager">
-        <option value="Supervisor Operation">
-        <option value="Senior Operation Officer">
-        <option value="Operation & Inventory Officer">
-        <option value="Inventory and Center Officer">
-        <option value="Repack Officer">
-    </datalist>
-
-        <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-       
-        <br>
-        <button class="btn-print" onclick="exportPDF()">🖨️ 1. บันทึกเป็น PDF</button>
-        <button class="btn-email" id="btnEmail">📧 2. ส่งอีเมลหา ผู้อนุมัติ</button>
-    </div>
+    <!-- Department & Position options are loaded dynamically from Firestore (config/departments, config/positions)
+         by js/config-loader.js. Manage them at admin.html. -->
+    <datalist id="deptList"></datalist>
+    <datalist id="posList"></datalist>
 
     <div class="container">
         <!-- ISO Header -->
@@ -351,12 +229,30 @@
         </div>
     </div>
 
+    <!-- Action bar (moved to bottom) -->
+    <div class="no-print action-bar">
+        <div class="action-card">
+            <div class="field" id="approverEmailField">
+                <label for="approverEmail">อีเมลผู้อนุมัติ <span class="req">*</span>
+                    <span class="label-hint">(Approver Email)</span></label>
+                <div class="input-wrap">
+                    <input type="email" id="approverEmail" placeholder="example@company.com"
+                        autocomplete="email" required>
+                </div>
+                <p class="field-error" id="approverEmailError"></p>
+            </div>
+            <div class="action-buttons">
+                <button class="btn-print" onclick="exportPDF()">🖨️ บันทึกเป็น PDF</button>
+                <button class="btn-email" id="btnEmail">📧 ส่งอีเมลหา ผู้อนุมัติ</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- เชื่อมต่อไฟล์ JS -->
     <script src="js/script.js"></script>
     <script src="js/pdf-export.js"></script>
-        <!-- EmailJS (mailjs) -->
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+        <!-- Email via Google Apps Script (Gmail) -->
     <script src="js/mailjs-config.js"></script>
 
 </body>

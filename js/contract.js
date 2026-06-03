@@ -1,4 +1,12 @@
-// contract.js — Load Firestore data and populate the contract template
+// contract.js — Load Firestore data into the read-only contract view (Step 4)
+// Mirrors the layout of the other pages: every field renders as a read-only input.
+
+$(document).ready(function () {
+    // Hide empty signature images so blank boxes don't show a broken icon
+    $('.sig-img-preview').each(function () {
+        if (!$(this).attr('src')) $(this).hide();
+    });
+});
 
 $(document).ready(async function () {
     const urlParams = new URLSearchParams(window.location.search);
@@ -20,100 +28,53 @@ $(document).ready(async function () {
         const sigs = data.signatures || {};
 
         // ---- Basic fields ----
-        const position = data.positionName || '-';
-        const dept     = data.department  || '-';
-        const loc      = data.location    || '-';
-        const level    = data.level       || '-';
-        const empName  = data.employeeName || '-';
-        const startDate = data.startDate
-            ? new Date(data.startDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
-            : '-';
+        $('#positionName').val(data.positionName || '');
+        $('#DeptName').val(data.department || '');
+        $('#location').val(data.location || '');
+        $('#level').val(data.level || '');
 
-        $('#c-position').text(position);
-        $('#c-position2').text(position);
-        $('#c-dept').text(dept);
-        $('#c-location').text(loc);
-        $('#c-location2').text(loc);
-        $('#c-level').text(level);
-        $('#c-empName').text(empName);
-        $('#c-empName2').text(empName);
-        $('#c-startDate').text(startDate);
-        $('#c-startDate2').text(startDate);
+        // ---- Responsibilities (auto-expand the read-only textarea) ----
+        $('#responsibilities').val(data.responsibilities || '');
+        const ta = document.getElementById('responsibilities');
+        if (ta) {
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
+        }
 
-        // ---- Education ----
+        // ---- Education & Experience ----
         const edu = data.education || {};
         const eduLevels = (edu.levels && edu.levels.length) ? edu.levels.join(', ') : '';
         const major = edu.major ? ' (สาขา ' + edu.major + ')' : '';
-        $('#c-edu').text((eduLevels || '-') + major);
+        $('#educationText').val((eduLevels || '') + major);
 
-        // ---- Experience ----
         const exp = data.experience || [];
-        $('#c-exp').text(exp.length ? exp.join(', ') : '-');
+        $('#experienceText').val(exp.length ? exp.join(', ') : '');
 
-        // ---- Responsibilities ----
-        const raw = (data.responsibilities || '').trim();
-        const $list = $('#c-duties');
-        if (raw) {
-            // Split by newline and strip existing numbering (e.g. "1. ", "2. ")
-            const lines = raw.split('\n')
-                .map(l => l.replace(/^\d+\.\s*/, '').trim())
-                .filter(l => l.length > 0);
-            lines.forEach(function (line) {
-                $list.append('<li>' + $('<span>').text(line).html() + '</li>');
-            });
-        } else {
-            $list.append('<li>-</li>');
-        }
+        // ---- Employee acknowledgement ----
+        $('#employeeName').val(data.employeeName || '');
+        const startDate = data.startDate
+            ? new Date(data.startDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
+            : '';
+        $('#startDate').val(startDate);
 
-        // ---- Signatures ----
-        function setSig(imgId, nameId, src, name) {
-            if (src) {
-                $('#' + imgId).attr('src', src).show();
-            }
-            if (name) {
-                $('#' + nameId).text(name);
-            }
+        // ---- Signatures (all read-only images + names) ----
+        function setSig(imgId, src) {
+            if (src) $('#' + imgId).attr('src', src).show();
         }
-        setSig('cSig1', 'cName1', sigs.requestedBy,  sigs.requestedByName);
-        setSig('cSig2', 'cName2', sigs.hr,            sigs.hrName);
-        setSig('cSig3', 'cName3', sigs.approver,      sigs.approverName);
-        setSig('cSig4', 'cName4', sigs.employee,      data.employeeName);
+        setSig('previewSig1', sigs.requestedBy);
+        setSig('previewSig3', sigs.approver);
+        setSig('previewSig2', sigs.hr);
+        setSig('previewSig4', sigs.employee);
+
+        if (sigs.requestedByName) $('#SignName1').val(sigs.requestedByName);
+        if (sigs.approverName) $('#SignName3').val(sigs.approverName);
+        if (sigs.hrName) $('#SignName2').val(sigs.hrName);
+
+        // Ensure static logo is displayed
+        $('#logoPreview').attr('src', 'img/logo.jpg').show();
 
     } catch (err) {
         console.error(err);
         alert('เกิดข้อผิดพลาดในการโหลดเอกสาร');
     }
 });
-
-// ---- PDF Export ----
-function exportContractPDF() {
-    if (typeof html2pdf === 'undefined') { window.print(); return; }
-
-    const positionEl = document.getElementById('c-position');
-    const position = positionEl ? positionEl.textContent.trim() : 'JD';
-    const today = new Date();
-    const dateStr = today.getFullYear() + '-' +
-        String(today.getMonth() + 1).padStart(2, '0') + '-' +
-        String(today.getDate()).padStart(2, '0');
-    const filename = 'Contract_' + position.replace(/\s+/g, '_') + '_' + dateStr + '.pdf';
-
-    const noPrint = document.querySelectorAll('.no-print');
-    noPrint.forEach(el => el.style.setProperty('display', 'none', 'important'));
-
-    html2pdf()
-        .set({
-            margin: [8, 8, 8, 8],
-            filename: filename,
-            image: { type: 'jpeg', quality: 0.97 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#fff' },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        })
-        .from(document.getElementById('contractPage'))
-        .save()
-        .then(() => noPrint.forEach(el => el.style.removeProperty('display')))
-        .catch(err => {
-            console.error(err);
-            noPrint.forEach(el => el.style.removeProperty('display'));
-            window.print();
-        });
-}
