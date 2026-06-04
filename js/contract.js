@@ -46,12 +46,16 @@ $(document).ready(async function () {
         $('#level').val(data.level || '');
 
         // ---- Responsibilities (auto-expand the read-only textarea) ----
-        $('#responsibilities').val(data.responsibilities || '');
+        const responsibilities = data.responsibilities || '';
+        $('#responsibilities').val(responsibilities);
         const ta = document.getElementById('responsibilities');
         if (ta) {
             ta.style.height = 'auto';
             ta.style.height = ta.scrollHeight + 'px';
         }
+        // Print-only mirror — textareas clip long text in PDF/print, so show
+        // the full duties as plain text (white-space:pre-wrap keeps line breaks).
+        $('#responsibilitiesPrint').text(responsibilities);
 
         // ---- Education & Experience ----
         const edu = data.education || {};
@@ -90,3 +94,37 @@ $(document).ready(async function () {
         JDUI.error('เกิดข้อผิดพลาดในการโหลดเอกสาร กรุณาลองใหม่อีกครั้ง', { title: 'โหลดเอกสารไม่สำเร็จ' });
     }
 });
+
+// Export a blank-signing template: same contract, but the Employee
+// Acknowledgement signature, name and start date are left empty so the
+// employee can print it and sign by hand. Values are restored after printing.
+function exportTemplatePDF() {
+    const sig4 = document.getElementById('previewSig4');
+    const employeeName = document.getElementById('employeeName');
+    const startDate = document.getElementById('startDate');
+
+    const saved = {
+        sigSrc: sig4 ? sig4.getAttribute('src') : null,
+        sigDisplay: sig4 ? sig4.style.display : '',
+        name: employeeName ? employeeName.value : '',
+        date: startDate ? startDate.value : ''
+    };
+
+    // Blank out the employee fields (leaves the dashed sig-area box empty)
+    if (sig4) { sig4.removeAttribute('src'); sig4.style.display = 'none'; }
+    if (employeeName) employeeName.value = '';
+    if (startDate) startDate.value = '';
+
+    function restore() {
+        if (sig4) {
+            if (saved.sigSrc) sig4.setAttribute('src', saved.sigSrc);
+            sig4.style.display = saved.sigDisplay;
+        }
+        if (employeeName) employeeName.value = saved.name;
+        if (startDate) startDate.value = saved.date;
+        window.removeEventListener('afterprint', restore);
+    }
+
+    window.addEventListener('afterprint', restore);
+    window.print();
+}

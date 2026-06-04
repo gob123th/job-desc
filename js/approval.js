@@ -40,6 +40,9 @@ $(document).ready(async function () {
         $('#location').val(data.location || '');
         $('#level').val(data.level || '');
         $('#responsibilities').val(data.responsibilities || '');
+        // Grow the read-only textarea to fit its content — the .auto-expand
+        // handler only fires on user input, so set the height here too.
+        autoExpandTextarea(document.getElementById('responsibilities'));
 
         // Education / experience quick copy
         try {
@@ -164,5 +167,12 @@ $(document).ready(async function () {
     } catch (err) {
         console.error(err);
         JDUI.error('เกิดข้อผิดพลาดในการโหลดเอกสาร กรุณาลองใหม่อีกครั้ง', { title: 'โหลดเอกสารไม่สำเร็จ' });
+    }
+
+    // Resize a textarea so all its text is visible (no internal scroll/clip).
+    function autoExpandTextarea(ta) {
+        if (!ta) return;
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
     }
 });

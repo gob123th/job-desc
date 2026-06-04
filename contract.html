@@ -94,7 +94,10 @@
         <h2>3. หน้าที่ความรับผิดชอบ (Key Responsibilities)</h2>
         <div class="form-group">
             <label>งานหลักและหน้าที่เฉพาะทาง (Specific Duties):</label>
-            <textarea id="responsibilities" class="auto-expand" readonly></textarea>
+            <textarea id="responsibilities" class="auto-expand has-print-mirror" readonly></textarea>
+            <!-- Print-only mirror: the textarea clips long text when printing,
+                 so we render the full duties as plain text for PDF/print. -->
+            <div id="responsibilitiesPrint" class="responsibilities-print"></div>
 
             <div class="fixed-clauses">
                 <strong>หน้าที่ความรับผิดชอบมาตรฐาน (Standard Responsibilities):</strong>
@@ -170,6 +173,7 @@
         <div class="action-card">
             <div class="action-buttons">
                 <button class="btn-print" onclick="exportPDF()">🖨️ บันทึกเป็น PDF</button>
+                <button class="btn-print" onclick="exportTemplatePDF()">📄 Template PDF</button>
             </div>
         </div>
     </div>

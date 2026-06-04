@@ -2,10 +2,12 @@
 // Each item is its own Firestore document; add / edit / delete persist immediately.
 // Shared data helpers live in js/config-loader.js (window.JDConfig).
 //
-// AUTH: real Firebase Email/Password authentication. The matching account must
-// exist in Firebase Auth AND its email must be on the allowlist inside
-// firestore.rules (isAdmin) AND be email-verified — Firestore enforces this
-// server-side, so a stolen page source no longer grants any access.
+// AUTH: real Firebase Email/Password authentication. Any account that exists in
+// Firebase Auth and can sign in is an admin — firestore.rules (isAdmin) enforces
+// "must be signed in" server-side. No email-verification or allowlist required.
+// Manage admins by adding/removing users in Firebase Console → Authentication.
+// IMPORTANT: disable client self sign-up (Auth → Settings → User actions) so
+// strangers can't self-register into admin.
 (function () {
     'use strict';
 
@@ -60,28 +62,12 @@
         $('#loginBtn').prop('disabled', true);
 
         auth.signInWithEmailAndPassword(email, pass)
-            .then(function (cred) {
+            .then(function () {
                 $('#adminPass').val('');
-                // Allowlist + email-verified are enforced server-side by
-                // firestore.rules. If the email isn't verified yet, send the user a
-                // verification link (we're still signed in here so we can), then sign out.
-                if (cred.user && cred.user.emailVerified === false) {
-                    const u = cred.user;
-                    return u.sendEmailVerification()
-                        .then(function () {
-                            return auth.signOut().then(function () {
-                                loginFailed('ส่งลิงก์ยืนยันไปที่ ' + email + ' แล้ว กรุณาเปิดอีเมล กดลิงก์ยืนยัน แล้วเข้าสู่ระบบใหม่อีกครั้ง');
-                            });
-                        })
-                        .catch(function (err) {
-                            console.error('sendEmailVerification failed', err);
-                            return auth.signOut().then(function () {
-                                loginFailed('อีเมลนี้ยังไม่ได้ยืนยัน และส่งลิงก์ยืนยันไม่สำเร็จ (ดูคอนโซล)');
-                            });
-                        });
-                }
                 $('#loginBtn').prop('disabled', false);
-                // onAuthStateChanged will reveal the admin screen.
+                // Any account that exists in Firebase Auth is an admin (enforced
+                // server-side by firestore.rules). onAuthStateChanged reveals the
+                // admin screen.
             })
             .catch(function (err) {
                 console.error('Login failed', err);
@@ -386,7 +372,7 @@
         // Drive the UI off Firebase Auth state. Persists across reloads via
         // Firebase's own session, and any rule rejection still blocks data access.
         auth.onAuthStateChanged(function (user) {
-            if (user && user.emailVerified) {
+            if (user) {
                 showAdmin();
             } else {
                 showLogin();

@@ -42,6 +42,15 @@ $(document).ready(async function () {
         $('#location').val(data.location || '');
         $('#level').val(data.level || '');
         $('#responsibilities').val(data.responsibilities || '');
+        // Grow the read-only textarea to fit its content so all the duties show
+        // on screen (the textarea clips with overflow hidden otherwise).
+        const respTa = document.getElementById('responsibilities');
+        if (respTa) {
+            respTa.style.height = 'auto';
+            respTa.style.height = respTa.scrollHeight + 'px';
+        }
+        // Print-only mirror — full duties text for PDF/print (textarea clips it)
+        $('#responsibilitiesPrint').text(data.responsibilities || '');
 
         // Education & Experience
         try {

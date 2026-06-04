@@ -2,18 +2,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ───────────────────────── Admin allowlist ─────────────────────────
-    // Real server-side security: only these signed-in (and email-verified)
-    // accounts get full read/list/write. email_verified is REQUIRED — without
-    // it, anyone could self-register an allowlisted email via the client Auth
-    // SDK and grant themselves admin. Add/remove admin emails here, then deploy.
+    // ───────────────────────── Admin access ─────────────────────────
+    // Any account that exists in Firebase Auth and can sign in is treated as an
+    // admin (full read/list/write). Manage admins by adding/removing users in the
+    // Firebase Console → Authentication. No email-verification or hardcoded
+    // allowlist is required here.
+    //
+    // ⚠️ SECURITY: this means whoever can create a Firebase Auth account is an
+    // admin. You MUST disable client-side self sign-up, otherwise anyone with the
+    // (public) Firebase config could register themselves and gain admin access:
+    //   Firebase Console → Authentication → Settings → User actions →
+    //   uncheck "Enable create (sign-up)".
     function isAdmin() {
-      return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email in [
-             'alisa@cclcolossal.com',
-             'jirayu.assawajindakun@gmail.com'
-           ];
+      return request.auth != null;
     }
 
     // ───────────────────────── Job descriptions ─────────────────────────

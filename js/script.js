@@ -17,6 +17,14 @@ $(document).ready(function () {
     // Set static logo
     $('#logoPreview').attr('src', 'img/logo.jpg').show();
 
+    // Sync the print-only mirror from the (editable) Specific Duties textarea
+    // before printing — textareas clip long text in PDF/print. See css @media print.
+    window.addEventListener('beforeprint', function () {
+        var ta = document.getElementById('responsibilities');
+        var mirror = document.getElementById('responsibilitiesPrint');
+        if (ta && mirror) mirror.textContent = ta.value;
+    });
+
     // --- Auto Numbering for Responsibilities ---
     const $resp = $('#responsibilities');
 

@@ -102,12 +102,69 @@ input:focus, select:focus, textarea:focus {
     background-color: #f8fbff; 
 }
 
-textarea { 
-    height: auto; 
-    min-height: 100px; 
-    resize: vertical; 
-    overflow-y: hidden; 
-    line-height: 1.6; 
+textarea {
+    height: auto;
+    min-height: 100px;
+    resize: vertical;
+    overflow-y: hidden;
+    line-height: 1.6;
+}
+
+/* Optional extra-instruction field for the AI Generate button */
+.ai-hint-input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 8px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #333;
+    border: 1px dashed #b9b9d6;
+    border-radius: 8px;
+    background: #fafaff;
+}
+.ai-hint-input:focus {
+    outline: none;
+    border-style: solid;
+    border-color: #000080;
+    background: #fff;
+}
+
+/* "Generate with AI" button (Specific Duties, index page) */
+.btn-ai-gen {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 7px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #000080 0%, #3b3bb5 100%);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 128, .25);
+    transition: transform .08s, box-shadow .15s, opacity .15s;
+}
+.btn-ai-gen:hover { box-shadow: 0 4px 12px rgba(0, 0, 128, .32); }
+.btn-ai-gen:active { transform: translateY(1px); }
+.btn-ai-gen:disabled { cursor: default; opacity: .65; }
+.btn-ai-gen svg { width: 16px; height: 16px; fill: #ffd86b; }
+.btn-ai-gen.is-loading svg { animation: btn-ai-spin 1s linear infinite; transform-origin: center; }
+@keyframes btn-ai-spin { to { transform: rotate(360deg); } }
+
+/* Print-only mirror of the Specific Duties text (Step 4). Hidden on screen;
+   revealed inside @media print where it replaces the clipping textarea. */
+.responsibilities-print {
+    display: none;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    font-size: 14px;
+    padding: 4px 0;
 }
 
 /* --- Checkboxes --- */
@@ -506,6 +563,9 @@ canvas {
     
     input::placeholder, textarea::placeholder { color: transparent; }
     textarea { resize: none; overflow: visible; height: auto !important; border: none; border-bottom: 1px solid #ccc; }
+    /* Step 4: swap the (clipping) textarea for the full-text print mirror */
+    textarea.has-print-mirror { display: none !important; }
+    .responsibilities-print { display: block; }
     .fixed-clauses { background-color: transparent; border-left: 1px solid #ccc; }
     @page { margin: 1cm; size: A4; }
 }

@@ -57,9 +57,9 @@ window.JDAccess = (function () {
     // Returns the normalized code on success, '' when no code is needed
     // (signed-in admin or legacy doc), or null if the user cancels / fails out.
     async function unlock(storedCode) {
-        // Signed-in (verified) admins bypass the per-document code prompt entirely.
+        // Signed-in admins bypass the per-document code prompt entirely.
         const user = await currentUser();
-        if (user && user.emailVerified) return norm(storedCode);
+        if (user) return norm(storedCode);
 
         if (!storedCode) return '';            // legacy docs created before codes existed
         const target = norm(storedCode);

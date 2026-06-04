@@ -122,8 +122,22 @@
         <h2>3. หน้าที่ความรับผิดชอบ (Key Responsibilities)</h2>
         <div class="form-group">
             <label>งานหลักและหน้าที่เฉพาะทาง (Specific Duties):</label>
-            <textarea id="responsibilities" class="auto-expand"
+            <textarea id="responsibilities" class="auto-expand has-print-mirror"
                 placeholder="1. .................................................................................&#10;2. .................................................................................&#10;3. .................................................................................&#10;(ระบุเฉพาะงานหลักของตำแหน่งนั้นๆ ส่วนเรื่อง ISO และงานอื่นๆ ระบบมีระบุไว้ให้ด้านล่างแล้วครับ)"></textarea>
+            <!-- Print-only mirror: synced from the textarea on beforeprint (see script.js) -->
+            <div id="responsibilitiesPrint" class="responsibilities-print"></div>
+
+            <input type="text" id="aiHint" class="ai-hint-input no-print"
+                placeholder="(ไม่บังคับ) คำสั่งเพิ่มเติมถึง AI เช่น เน้นงานขายต่างประเทศ, ใส่ภาษาอังกฤษกำกับ, ระบุ 5 ข้อ ...">
+
+            <button type="button" id="btnGenAI" class="btn-ai-gen no-print"
+                title="ให้ AI ช่วยร่างหน้าที่ความรับผิดชอบจากชื่อตำแหน่งและแผนก">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z"></path>
+                    <path d="M19 14l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2z"></path>
+                </svg>
+                <span class="btn-ai-label">Generate</span>
+            </button>
 
             <div class="fixed-clauses">
                 <strong>หน้าที่ความรับผิดชอบมาตรฐาน (Standard Responsibilities):</strong>
@@ -253,6 +267,7 @@
 
     <!-- เชื่อมต่อไฟล์ JS -->
     <script src="js/script.js"></script>
+    <script type="module" src="js/ai-generate.js"></script>
     <script src="js/pdf-export.js"></script>
         <!-- Email via Google Apps Script (Gmail) -->
     <script src="js/mailjs-config.js"></script>

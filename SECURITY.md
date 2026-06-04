@@ -12,7 +12,7 @@ admin account must exist.
 | Area | Before | After |
 |------|--------|-------|
 | Firestore rules | `read/write: if true` (wide open) | Locked: capability-URL reads, admin-only list, no public delete, validated create — see [firestore.rules](firestore.rules) |
-| Admin login | Hardcoded `admin` / password in [js/admin.js](js/admin.js) | Real Firebase Email/Password Auth + email allowlist enforced in rules |
+| Admin login | Hardcoded `admin` / password in [js/admin.js](js/admin.js) | Real Firebase Email/Password Auth — any user in Firebase Auth is an admin (rules require `request.auth != null`); client self sign-up must be disabled |
 | Approval / Preview / Contract | Anyone with the link saw everything | Per-document access code (sent by email) gates the page — see [js/access-gate.js](js/access-gate.js) |
 | Signature upload | No checks | Rejects non-images and files > 5 MB |
 | Mail endpoint | `to` chosen freely by client | Harden the Apps Script (section 4) to whitelist recipients + rate-limit |
@@ -26,24 +26,18 @@ admin account must exist.
 1. **Enable Email/Password auth**
    Firebase console → **Authentication** → **Sign-in method** → enable **Email/Password**.
 
-2. **Create the admin account**
+2. **Create the admin account(s)**
    Authentication → **Users** → **Add user** → enter the admin email + a strong password.
+   Every user you add here becomes an admin — no email verification or allowlist needed.
 
-3. **Verify the admin's email** (rules require `email_verified == true`)
-   Console-created users are *not* verified. Either:
-   - have the admin trigger a verification email and click it, **or**
-   - mark it verified with the Admin SDK / `gcloud`:
-     ```
-     # one-off, requires firebase-admin or gcloud auth
-     firebase auth:import ...    # or use the Admin SDK updateUser({ emailVerified: true })
-     ```
-   Verification is what stops an attacker from self-registering an allowlisted email
-   via the client SDK and granting themselves admin.
+3. **Disable client self sign-up (CRITICAL)**
+   Because any Firebase Auth user is an admin, you MUST stop strangers from registering
+   themselves with the (public) Firebase config:
+   Authentication → **Settings** → **User actions** → uncheck **Enable create (sign-up)**.
+   Without this, anyone could call `createUserWithEmailAndPassword` from the client and
+   grant themselves admin. Manage admins exclusively via console **Add user**.
 
-4. **Add the admin email(s) to the allowlist** in [firestore.rules](firestore.rules)
-   inside `isAdmin()`, then deploy (next step).
-
-5. **Deploy rules + hosting**
+4. **Deploy rules + hosting**
    ```
    firebase deploy --only firestore:rules
    firebase deploy --only hosting        # if you serve from Firebase Hosting (gets the headers)
@@ -60,7 +54,7 @@ admin account must exist.
 2. `approval.html` (manager) prompts for the code before showing anything.
 3. On approval, the same code is forwarded in the email to HR.
 4. `preview.html` (HR) and `contract.html` prompt for the same code.
-5. **A signed-in (verified) admin bypasses the prompt automatically** — so clicking a
+5. **A signed-in admin bypasses the prompt automatically** — so clicking a
    row in the admin console opens the document without asking for a code. This is why
    the four pages now also load `firebase-auth-compat.js`.
 
@@ -166,7 +160,30 @@ This removes the static-site limitation in section 3.
 
 ---
 
-## 6. Reminder: the Firebase `apiKey` is not a secret
+## 6. Enable Firebase AI Logic (for the "Generate" button)
+
+The "✨ Generate" button on `index.html` drafts the Specific Duties from the position
+title + department using **Firebase AI Logic** with the **Gemini Developer API** backend
+([js/ai-generate.js](js/ai-generate.js)). This runs on the **no-cost Spark plan** — no
+billing or credit card — and keeps the Gemini key on Google's backend (nothing secret is
+shipped to the browser). One-time console setup:
+
+1. Firebase console → **Build → AI Logic → Get started**.
+2. Choose the **Gemini Developer API** provider (the free one). *Do not* pick Vertex AI —
+   that requires the Blaze plan.
+3. This auto-provisions the Gemini API and links it to the project; no key goes in code.
+
+Until this is enabled the button shows a friendly "AI ไม่พร้อมใช้งาน" error.
+
+> **Privacy note:** on the free tier, Google may use prompts to improve its models. JD
+> position/department text is low-sensitivity, but if that ever matters, move to a paid
+> (Blaze/Vertex) tier, which excludes prompts from training.
+> **Abuse note:** consider enabling **App Check** (Firebase console) so only your site can
+> call the AI backend — the call is unauthenticated otherwise.
+
+---
+
+## 7. Reminder: the Firebase `apiKey` is not a secret
 
 The `apiKey` in [js/firebase-config.js](js/firebase-config.js) is meant to be public;
 it only identifies the project. All real protection comes from **Firestore rules +
