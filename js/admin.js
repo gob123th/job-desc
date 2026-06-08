@@ -100,6 +100,13 @@
         state[type].sort(function (a, b) { return a.name.localeCompare(b.name); });
     }
 
+    // Push the just-mutated in-memory list into the shared cache, so the next form load
+    // is served from cache with no Firestore read. (Mutations also clear the cache as a
+    // safety net; this overwrites it with the fresh list right away.)
+    function syncCache(type) {
+        window.JDConfig.setCache(type, state[type]);
+    }
+
     // ---------- Rendering ----------
     function render(type) {
         const $c = $card(type);
@@ -168,6 +175,7 @@
         window.JDConfig.addItem(type, name).then(function (ref) {
             state[type].push({ id: ref.id, name: name });
             sortState(type);
+            syncCache(type);
             $input.val('').prop('disabled', false).focus();
             render(type);
             flash($c, '✓ เพิ่ม "' + name + '" แล้ว', 'ok');
@@ -199,6 +207,7 @@
         window.JDConfig.updateItem(type, id, newName).then(function () {
             item.name = newName;
             sortState(type);
+            syncCache(type);
             render(type);
             flash($c, '✓ บันทึกแล้ว', 'ok');
         }).catch(function (err) {
@@ -221,6 +230,7 @@
             status($c, 'กำลังลบ...', '');
             window.JDConfig.deleteItem(type, id).then(function () {
                 state[type] = state[type].filter(function (i) { return i.id !== id; });
+                syncCache(type);
                 render(type);
                 flash($c, '✓ ลบ "' + item.name + '" แล้ว', 'ok');
             }).catch(function (err) {

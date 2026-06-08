@@ -1,10 +1,28 @@
+/* TH Sarabun PSK — bundled so the font renders everywhere (screen + PDF/print),
+   not only on machines where it is installed. Source: SIPA national font. */
+@font-face {
+    font-family: 'TH Sarabun PSK';
+    src: url('../fonts/THSarabunPSK-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'TH Sarabun PSK';
+    src: url('../fonts/THSarabunPSK-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* ...existing code... (ส่วน Global Styles จนถึง Checkboxes ยังเหมือนเดิม) */
-body { 
-    font-family: 'Sarabun', sans-serif; 
-    background-color: #e9ecef; 
-    margin: 0; 
-    padding: 20px; 
-    color: #333; 
+body {
+    font-family: 'TH Sarabun PSK', 'Sarabun', sans-serif;
+    font-size: 20px; /* regular text */
+    background-color: #e9ecef;
+    margin: 0;
+    padding: 20px;
+    color: #333;
 }
 
 .container {
@@ -36,16 +54,16 @@ body {
 .col-title { width: 70%; } 
 .col-info { width: 15%; }
 
-.header-title { 
-    text-align: center; 
-    font-weight: bold; 
-    font-size: 18px; 
-    white-space: nowrap; 
-    overflow: hidden;    
+.header-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 22px;
+    white-space: nowrap;
+    overflow: hidden;
 }
-.header-subtitle { 
-    font-size: 14px; 
-    font-weight: normal; 
+.header-subtitle {
+    font-size: 20px;
+    font-weight: normal;
     display: block; 
     margin-top: 2px; 
 }
@@ -60,10 +78,10 @@ h2 {
     border-bottom: 2px solid #0056b3; 
     padding-bottom: 5px; 
     margin-top: 25px; 
-    margin-bottom: 15px; 
-    font-size: 16px; 
-    color: #0056b3; 
-    text-transform: uppercase; 
+    margin-bottom: 15px;
+    font-size: 22px;
+    color: #0056b3;
+    text-transform: uppercase;
 }
 
 .form-row { 
@@ -77,22 +95,22 @@ h2 {
     min-width: 200px; 
 }
 
-label { 
-    display: block; 
-    font-weight: bold; 
-    font-size: 14px; 
-    margin-bottom: 5px; 
-    color: #495057; 
+label {
+    display: block;
+    font-weight: bold;
+    font-size: 22px;
+    margin-bottom: 5px;
+    color: #495057;
 }
 
 input[type="text"], input[type="date"], input[type="email"], select, textarea {
     width: 100%; 
-    padding: 10px; 
+    padding: 5px 10px; 
     border: 1px solid #ced4da; 
     border-radius: 4px; 
-    font-family: 'Sarabun', sans-serif; 
-    font-size: 14px; 
-    box-sizing: border-box; 
+    font-family: 'TH Sarabun PSK', 'Sarabun', sans-serif;
+    font-size: 20px;
+    box-sizing: border-box;
     transition: border-color 0.2s;
 }
 
@@ -139,7 +157,7 @@ textarea {
     margin-top: 8px;
     padding: 7px 14px;
     font-family: inherit;
-    font-size: 13px;
+    font-size: 20px;
     font-weight: 600;
     color: #fff;
     background: linear-gradient(135deg, #000080 0%, #3b3bb5 100%);
@@ -163,7 +181,7 @@ textarea {
     white-space: pre-wrap;
     word-break: break-word;
     line-height: 1.6;
-    font-size: 14px;
+    font-size: 20px;
     padding: 4px 0;
 }
 
@@ -180,18 +198,18 @@ textarea {
 .checkbox-item { 
     display: flex; 
     align-items: center; 
-    gap: 10px; 
-    font-size: 14px; 
-    cursor: pointer; 
+    gap: 10px;
+    font-size: 20px;
+    cursor: pointer;
 }
-.checkbox-item input { 
+.checkbox-item input {
     transform: scale(1.2); 
     cursor: pointer; 
 }
 .input-spec {
-    margin-top: 5px; 
-    padding: 6px; 
-    font-size: 13px;
+    margin-top: 5px;
+    padding: 6px;
+    font-size: 20px;
 }
 
 /* --- KPI Table Style --- */
@@ -210,7 +228,7 @@ textarea {
 
 .kpi-table th {
     background-color: #e9ecef;
-    font-size: 14px;
+    font-size: 22px;
     font-weight: bold;
     color: #495057;
 }
@@ -220,7 +238,7 @@ textarea {
     background: transparent;
     padding: 5px;
     width: 100%;
-    font-family: 'Sarabun', sans-serif;
+    font-family: 'TH Sarabun PSK', 'Sarabun', sans-serif;
 }
 
 /* --- Signatures (Updated) --- */
@@ -244,12 +262,12 @@ textarea {
     position: relative;
     margin-bottom: 8px; /* เว้นช่องว่างระหว่าง field */
 }
-.sig-title { 
-    font-weight: bold; 
-    display: block; 
-    margin-bottom: 5px; 
-    font-size: 13px; 
-    color: #333; 
+.sig-title {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+    font-size: 22px;
+    color: #333;
 }
 .sig-controls {
     margin-bottom: 5px;
@@ -312,14 +330,14 @@ textarea {
     page-break-inside: avoid; 
 }
 .ack-header {
-    font-weight: bold; 
-    margin-bottom: 10px; 
-    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 22px;
 }
-.ack-text { 
-    font-size: 14px; 
-    margin-bottom: 15px; 
-    line-height: 1.6; 
+.ack-text {
+    font-size: 20px;
+    margin-bottom: 15px;
+    line-height: 1.6;
 }
 .ack-flex {
     display: flex; 
@@ -361,9 +379,9 @@ canvas {
     margin-top: 10px; 
     padding: 10px; 
     background-color: #f8f9fa; 
-    border-left: 4px solid #0056b3; 
-    font-size: 14px; 
-    color: #333; 
+    border-left: 4px solid #0056b3;
+    font-size: 20px;
+    color: #333;
 }
 .fixed-clauses ul { 
     margin: 0; 

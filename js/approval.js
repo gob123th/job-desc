@@ -26,7 +26,7 @@ $(document).ready(async function () {
         const accessCode = await window.JDAccess.unlock(data.accessCode);
         if (accessCode === null) {
             document.body.innerHTML =
-                '<div style="max-width:520px;margin:80px auto;font-family:Sarabun,sans-serif;text-align:center;color:#444;">' +
+                '<div style="max-width:520px;margin:80px auto;font-family:\'TH Sarabun PSK\',Sarabun,sans-serif;text-align:center;color:#444;">' +
                 '<h2>🔒 ต้องใช้รหัสเข้าถึงเอกสาร</h2>' +
                 '<p>กรุณาเปิดลิงก์จากอีเมลอีกครั้งและกรอกรหัสที่ถูกต้องเพื่อดูเอกสารนี้</p></div>';
             return;

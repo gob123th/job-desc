@@ -18,7 +18,7 @@ window.JDUI = (function () {
 
     // ---- One-time stylesheet injection ----------------------------------
     var STYLE = ''
-        + '.jdui-root{font-family:"Sarabun",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}'
+        + '.jdui-root{font-family:"TH Sarabun PSK","Sarabun",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}'
         + '.jdui-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;'
         + 'justify-content:center;padding:20px;background:rgba(17,24,39,.55);backdrop-filter:blur(4px);'
         + '-webkit-backdrop-filter:blur(4px);opacity:0;transition:opacity .2s ease;}'

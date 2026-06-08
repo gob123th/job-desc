@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "jd-online-colossal",
     "public": ".",
     "ignore": [
       "firebase.json",
@@ -19,7 +20,7 @@
           { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=()" },
           {
             "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://www.gstatic.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://script.google.com https://script.googleusercontent.com; frame-ancestors 'none'"
+            "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://www.gstatic.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://script.google.com https://script.googleusercontent.com https://www.gstatic.com https://unpkg.com; frame-ancestors 'none'"
           }
         ]
       }
