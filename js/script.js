@@ -331,12 +331,8 @@ function setupFormValidation() {
     register($('#responsibilities'), function () {
         return $('#responsibilities').val().trim() ? '' : 'กรุณากรอกหน้าที่ความรับผิดชอบ';
     });
-    register($('#employeeName'), function () {
-        return $('#employeeName').val().trim() ? '' : 'กรุณากรอกชื่อพนักงาน';
-    }, { wrapper: $('.ack-info-col') });
-    register($('#startDate'), function () {
-        return $('#startDate').val() ? '' : 'กรุณาเลือกวันที่เริ่มงาน';
-    }, { wrapper: $('.input-date-wrapper') });
+    // Employee Acknowledgement (ชื่อพนักงาน / วันที่เริ่มงาน / ลายเซ็นพนักงาน)
+    // is optional — no validation enforced.
     register($('#approverEmail'), function () {
         const v = ($('#approverEmail').val() || '').trim();
         if (!v) return 'กรุณากรอกอีเมลผู้อนุมัติ';
@@ -373,29 +369,8 @@ function setupFormValidation() {
         });
     })();
 
-    // Employee signature (box 4): acknowledgement signature, same custom wiring.
-    (function () {
-        const $box = $('#sig-box-4');
-        if (!$box.length) return;
-        const $error = $('<p class="field-error"></p>').appendTo($box);
-        let touched = false;
-
-        function evaluate() {
-            const msg = getSignatureData(4) ? '' : 'กรุณาลงลายเซ็นพนักงาน';
-            $error.text(msg);
-            $box.toggleClass('invalid', !!msg).toggleClass('valid', !msg);
-            return !msg;
-        }
-        // Re-check after the user draws, uploads, or clears the signature.
-        $('#sig4').on('mouseup touchend', function () { if (touched) setTimeout(evaluate, 0); });
-        $('#uploadSig4').on('change', function () { if (touched) setTimeout(evaluate, 60); });
-        $('#sig-box-4 .btn-clear').on('click', function () { if (touched) setTimeout(evaluate, 0); });
-
-        fields.push({
-            $wrapper: $box,
-            force: function () { touched = true; return evaluate(); }
-        });
-    })();
+    // Employee signature (box 4) is part of the optional Employee
+    // Acknowledgement section — no validation enforced.
 
     return {
         // Force-validate everything; returns the first invalid wrapper ($) or null.
