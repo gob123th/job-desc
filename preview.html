@@ -17,8 +17,6 @@
     <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <style>
         /* Preview specific tweaks */
-        /* show controls on-screen (hidden only in print) */
-        .no-print { display: block !important; }
         /* allow canvas to be used for drawing in preview */
         .sig-canvas { display: block; width:100%; height:100%; cursor: crosshair; touch-action: none; }
         .sig-img-preview { display: block; max-width:100%; height:auto; }
@@ -28,10 +26,6 @@
 </head>
 
 <body>
-            <div class="no-print" style="text-align: center; margin-bottom: 20px;">
-            <button class="btn-print" id="btnPDF" onclick="exportPDF()">🖨️ 1. บันทึกเป็น PDF</button>
-            <button class="btn-email" id="btnEmail">✅ 2. บันทึกลายเซ็น HR และเสร็จสิ้น</button>
-        </div>
     <div class="container">
      
 
@@ -166,6 +160,18 @@
         </div>
 
         <div class="footer-rev">FM-HR-01/01 Rev.02 | เอกสารสำคัญห้ามเผยแพร่ภายนอก</div>
+    </div>
+
+    <!-- Action bar (bottom) -->
+    <div class="no-print action-bar">
+        <div class="action-card">
+            <div class="action-title">ดำเนินการเอกสาร</div>
+            <div class="action-hint">ตรวจสอบข้อมูลและลงลายเซ็น HR ให้เรียบร้อย จากนั้นบันทึกเพื่อเสร็จสิ้นขั้นตอนการอนุมัติ</div>
+            <div class="action-buttons">
+                <button class="btn-email" id="btnEmail">บันทึกลายเซ็น HR และเสร็จสิ้น</button>
+                <button class="btn-print" id="btnPDF" onclick="exportPDF()">บันทึกเป็น PDF</button>
+            </div>
+        </div>
     </div>
 
     <script src="js/mailjs-config.js"></script>
