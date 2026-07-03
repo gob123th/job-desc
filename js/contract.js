@@ -68,10 +68,7 @@ $(document).ready(async function () {
 
         // ---- Employee acknowledgement ----
         $('#employeeName').val(data.employeeName || '');
-        const startDate = data.startDate
-            ? new Date(data.startDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })
-            : '';
-        $('#startDate').val(startDate);
+        $('#startDate').val(formatThaiDate(data.startDate));
 
         // ---- Signatures (all read-only images + names) ----
         function setSig(imgId, src) {

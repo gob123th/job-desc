@@ -609,6 +609,16 @@ canvas {
     display: inline-block; 
 }
 
+/* Thai-format echo of the start-date picker (index form), e.g. "1 มกราคม 2568".
+   On print it replaces the raw picker (see @media print below). */
+.thai-date-text {
+    display: inline-block;
+    margin-top: 6px;
+    font-weight: 600;
+    color: #2563eb;
+}
+.thai-date-text:empty { display: none; }
+
 /* --- Print Styles --- */
 @media print {
     body { background-color: white; padding: 0; margin: 0; }
@@ -622,9 +632,21 @@ canvas {
     
     input::placeholder, textarea::placeholder { color: transparent; }
     textarea { resize: none; overflow: visible; height: auto !important; border: none; border-bottom: 1px solid #ccc; }
+    /* Selects print as clean blank boxes: hide the dropdown arrow, and hide the
+       "- กรุณาเลือก -" placeholder text when nothing has been chosen yet */
+    select { appearance: none; -webkit-appearance: none; }
+    select:has(option[value=""]:checked) { color: transparent; }
+    /* Empty date inputs: hide the browser's dd/mm/yyyy hint (class set on beforeprint) */
+    input.print-empty-date { color: transparent; }
+    input.print-empty-date::-webkit-datetime-edit { color: transparent; }
+    /* Filled start date: print the Thai text instead of the raw picker */
+    input.print-thai-date { display: none; }
+    .thai-date-text { color: #000; }
     /* Step 4: swap the (clipping) textarea for the full-text print mirror */
     textarea.has-print-mirror { display: none !important; }
     .responsibilities-print { display: block; }
+    /* index form only: leave hand-writing space when printing a blank form */
+    .responsibilities-print.print-writing-space { min-height: 300px; }
     .fixed-clauses { background-color: transparent; border-left: 1px solid #ccc; }
     @page { margin: 1cm; size: A4; }
 }

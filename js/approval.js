@@ -83,7 +83,7 @@ $(document).ready(async function () {
         if (sigs.approverName) $('#SignName3').val(sigs.approverName);
 
         if (data.employeeName) $('#employeeName').val(data.employeeName);
-        if (data.startDate) $('#startDate').val(data.startDate);
+        if (data.startDate) $('#startDate').val(formatThaiDate(data.startDate));
 
         // By default inputs are readonly; enable approver controls
         $('input, textarea, select, button').prop('disabled', true);

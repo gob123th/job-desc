@@ -23,6 +23,30 @@ $(document).ready(function () {
         var ta = document.getElementById('responsibilities');
         var mirror = document.getElementById('responsibilitiesPrint');
         if (ta && mirror) mirror.textContent = ta.value;
+        // Empty date inputs render "dd/mm/yyyy" in print — blank them out
+        // (see .print-empty-date rule in css @media print)
+        $('input[type="date"]').each(function () {
+            $(this).toggleClass('print-empty-date', !this.value);
+        });
+        // When a start date is chosen, print the Thai text instead of the picker
+        $('#startDate').toggleClass('print-thai-date', !!$('#startDate').val());
+    });
+    window.addEventListener('afterprint', function () {
+        $('input.print-empty-date').removeClass('print-empty-date');
+    });
+
+    // ?print=blank (from admin.html): open the empty form and go straight to
+    // the print dialog so admins can print a blank JD form to fill by hand.
+    if (new URLSearchParams(location.search).get('print') === 'blank') {
+        window.addEventListener('load', function () {
+            setTimeout(function () { window.print(); }, 400);
+        });
+    }
+
+    // Live Thai-date text beside the start-date picker (e.g. "1 มกราคม 2568");
+    // also used as the printed value in place of the raw picker.
+    $('#startDate').on('change input', function () {
+        $('#startDateThai').text(formatThaiDate(this.value));
     });
 
     // --- Auto Numbering for Responsibilities ---
@@ -407,7 +431,7 @@ function collectFormData() {
         },
         // Employee acknowledgement fields
         employeeName: $('#employeeName').val() || null,
-        startDate: $('#startDate').val() || null,
+        startDate: normalizeStartDate($('#startDate').val()) || null,
 
 
         status: "APPLICANT_SUBMITTED",

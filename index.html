@@ -14,6 +14,7 @@
     <script src="js/firebase-config.js"></script>
     <script src="js/ui-dialog.js"></script>
     <script src="js/access-gate.js"></script>
+    <script src="js/thai-date.js"></script>
     <script src="js/config-loader.js"></script>
     <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
 </head>
@@ -27,7 +28,7 @@
     <datalist id="posList"></datalist>
 
     <div class="container">
-        <div style="margin-bottom: 18px; text-align: right;">
+        <div class="no-print" style="margin-bottom: 18px; text-align: right;">
             <a href="manual.html" target="_blank" rel="noopener" style="display:inline-block; padding:12px 16px; border-radius:10px; background:#e8f3ff; color:#154a9d; border:1px solid #cfe2ff; text-decoration:none; font-weight:700;">📘 คู่มือการใช้งาน</a>
         </div>
         <!-- ISO Header -->
@@ -128,7 +129,7 @@
             <textarea id="responsibilities" class="auto-expand has-print-mirror"
                 placeholder="1. .................................................................................&#10;2. .................................................................................&#10;3. .................................................................................&#10;(ระบุเฉพาะงานหลักของตำแหน่งนั้นๆ ส่วนเรื่อง ISO และงานอื่นๆ ระบบมีระบุไว้ให้ด้านล่างแล้วครับ)"></textarea>
             <!-- Print-only mirror: synced from the textarea on beforeprint (see script.js) -->
-            <div id="responsibilitiesPrint" class="responsibilities-print"></div>
+            <div id="responsibilitiesPrint" class="responsibilities-print print-writing-space"></div>
 
             <input type="text" id="aiHint" class="ai-hint-input no-print"
                 placeholder="(ไม่บังคับ) คำสั่งเพิ่มเติมถึง AI เช่น เน้นงานขายต่างประเทศ, ใส่ภาษาอังกฤษกำกับ, ระบุ 5 ข้อ ...">
@@ -238,6 +239,7 @@
                     <input id="employeeName" type="text" placeholder="(พิมพ์ชื่อ-นามสกุลตัวบรรจง)" class="input-name">
                     <div class="input-date-wrapper">
                         วันที่เริ่มงาน (Start Date): <input id="startDate" type="date" class="input-date">
+                        <span id="startDateThai" class="thai-date-text"></span>
                     </div>
                 </div>
             </div>

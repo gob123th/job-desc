@@ -102,7 +102,8 @@ $(document).ready(async function () {
         $(document).data('clearedSigs', clearedSigs);
 
         if (data.employeeName) $('#employeeName').val(data.employeeName);
-        if (data.startDate) $('#startDate').val(data.startDate);
+        // Show Thai date but keep the raw ISO value for saving back to Firestore
+        if (data.startDate) $('#startDate').val(formatThaiDate(data.startDate)).data('iso', data.startDate);
 
         // Ensure static logo is displayed
         $('#logoPreview').attr('src', 'img/logo.jpg').show();
@@ -173,7 +174,8 @@ $(document).ready(async function () {
 
                 // include employee acknowledgement fields if present
                 const employeeName = $('#employeeName').val() || null;
-                const startDate = $('#startDate').val() || null;
+                // Normalize in case the stored value carried a Buddhist-era year
+                const startDate = normalizeStartDate($('#startDate').data('iso')) || null;
                 if (employeeName !== null) updateData['employeeName'] = employeeName;
                 if (startDate !== null) updateData['startDate'] = startDate;
 
