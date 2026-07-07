@@ -241,6 +241,7 @@ $(document).ready(async function () {
 
             $(canvas).on('mousedown', function (e) {
                 isDrawing = true;
+                $(boxId + ' .sig-draw-hint').hide();
                 ctx.beginPath();
                 const pos = getPos(e);
                 ctx.moveTo(pos.x, pos.y);
@@ -254,7 +255,7 @@ $(document).ready(async function () {
             $(canvas).on('mouseup mouseout', function () { isDrawing = false; });
 
             $(canvas).on('touchstart', function (e) {
-                e.preventDefault(); isDrawing = true; ctx.beginPath(); const pos = getPos(e.originalEvent); ctx.moveTo(pos.x, pos.y);
+                e.preventDefault(); isDrawing = true; $(boxId + ' .sig-draw-hint').hide(); ctx.beginPath(); const pos = getPos(e.originalEvent); ctx.moveTo(pos.x, pos.y);
             });
             $(canvas).on('touchmove', function (e) { e.preventDefault(); if (!isDrawing) return; const pos = getPos(e.originalEvent); ctx.lineTo(pos.x, pos.y); ctx.stroke(); });
             $(canvas).on('touchend', function () { isDrawing = false; });
@@ -265,10 +266,13 @@ $(document).ready(async function () {
             var mode = $(this).val();
             if (mode === 'draw') {
                 $(boxId + ' canvas').show();
+                // "sign here" hint only while the canvas is still blank
+                $(boxId + ' .sig-draw-hint').toggle(!canvas || isCanvasBlank(canvas));
                 $(boxId + ' .upload-area').hide();
                 resizeCanvas();
             } else {
                 $(boxId + ' canvas').hide();
+                $(boxId + ' .sig-draw-hint').hide();
                 $(boxId + ' .upload-area').css('display', 'flex');
             }
         });
@@ -294,6 +298,7 @@ $(document).ready(async function () {
         // Clear Button logic
         $(boxId + ' .btn-clear').on('click', function () {
             if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+            $(boxId + ' .sig-draw-hint').show();
             $(previewId).attr('src', '').hide();
             $(uploadInputId).val('');
             // mark as cleared so update will delete the field from Firestore

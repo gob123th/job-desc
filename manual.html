@@ -4,51 +4,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>คู่มือการใช้งาน JD Online</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <title>คู่มือการใช้งาน JD Online (ฉบับย่อ)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .manual-page {
-            max-width: 900px;
-            margin: 30px auto;
-            padding: 24px;
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Sarabun', sans-serif;
+            font-size: 17px;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #eef1f5;
+            margin: 0;
+            padding: 20px 14px;
+        }
+        .page {
+            max-width: 820px;
+            margin: 0 auto;
             background: #fff;
             border-radius: 18px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 8px 30px rgba(17, 24, 39, 0.08);
+            padding: 32px 30px 40px;
         }
-        .manual-page h1 {
-            margin-top: 0;
-            font-size: 30px;
+        h1 {
+            margin: 0 0 4px;
+            font-size: 28px;
+            color: #111827;
         }
-        .manual-page p {
-            line-height: 1.75;
-            margin: 18px 0;
+        .subtitle {
+            color: #6b7280;
+            margin: 0 0 26px;
         }
-        .manual-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 18px;
-            border-radius: 12px;
+
+        /* ---- ภาพรวม 4 ขั้นตอน ---- */
+        .flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 0 0 10px;
+        }
+        .flow-step {
+            flex: 1 1 160px;
             background: #f0f7ff;
             border: 1px solid #dbeafe;
-            color: #0f4db0;
-            font-weight: 600;
+            border-radius: 12px;
+            padding: 12px 14px;
+            position: relative;
         }
-        .manual-back {
-            margin-top: 28px;
+        .flow-step .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #2563eb;
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        .flow-step strong { display: block; color: #111827; }
+        .flow-step span { font-size: 14.5px; color: #4b5563; }
+        .flow-note {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin: 14px 0 30px;
+            font-size: 16px;
+        }
+
+        /* ---- การ์ดตามบทบาท ---- */
+        h2 {
+            font-size: 21px;
+            color: #111827;
+            margin: 34px 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .role {
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 18px 22px;
+            margin-bottom: 16px;
+            page-break-inside: avoid;
+        }
+        .role h3 {
+            margin: 0 0 4px;
+            font-size: 18.5px;
+            color: #111827;
+        }
+        .role .who {
+            font-size: 15px;
+            color: #6b7280;
+            margin: 0 0 10px;
+        }
+        .role ol {
+            margin: 0;
+            padding-left: 22px;
+        }
+        .role ol li { margin: 6px 0; }
+        .role .btn-name {
             display: inline-block;
+            background: #2563eb;
+            color: #fff;
+            border-radius: 8px;
+            padding: 1px 10px;
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .role .done {
+            margin: 10px 0 0;
+            font-size: 15.5px;
+            color: #047857;
+            background: #ecfdf5;
+            border-radius: 8px;
+            padding: 6px 12px;
+            display: inline-block;
+        }
+
+        /* ---- วิธีเซ็น ---- */
+        .sign-ways {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .sign-way {
+            flex: 1 1 220px;
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            background: #fafafa;
+            padding: 14px 16px;
+            page-break-inside: avoid;
+        }
+        .sign-way strong { color: #111827; }
+        .sign-way p { margin: 6px 0 0; font-size: 15.5px; color: #4b5563; }
+
+        /* ---- FAQ ---- */
+        .faq { margin: 0; padding: 0; list-style: none; }
+        .faq li {
+            border-bottom: 1px solid #f0f1f3;
+            padding: 10px 0;
+            page-break-inside: avoid;
+        }
+        .faq .q { font-weight: 700; color: #111827; }
+        .faq .a { color: #4b5563; font-size: 16px; }
+
+        .footer {
+            margin-top: 34px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14.5px;
+            color: #9ca3af;
+        }
+        .actions { margin-top: 26px; }
+        .actions a, .actions button {
+            display: inline-block;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 10px 18px;
+            border-radius: 10px;
+            text-decoration: none;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .btn-back { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+        .btn-print { background: #2563eb; color: #fff; border: none; }
+
+        @media print {
+            body { background: #fff; padding: 0; }
+            .page { box-shadow: none; border-radius: 0; padding: 0; max-width: 100%; }
+            .actions { display: none; }
+            @page { margin: 1.5cm; size: A4; }
         }
     </style>
 </head>
 
 <body>
-    <div class="manual-page">
-        <h1>คู่มือการใช้งานระบบ JD Online</h1>
-        <p>หน้าเว็บนี้ช่วยให้คุณเปิดไฟล์คู่มือ `คู่มือการใช้งาน_JD_Online.docx` ผ่านเว็บได้ง่ายขึ้น หากเบราว์เซอร์ของคุณรองรับไฟล์ DOCX จะสามารถแสดงไฟล์ได้โดยตรง หากไม่รองรับก็จะดาวน์โหลดไฟล์ให้ใช้งานต่อได้ทันที</p>
-        <p><a class="manual-link" href="คู่มือการใช้งาน_JD_Online.docx" target="_blank" rel="noopener">เปิด/ดาวน์โหลดคู่มือ DOCX</a></p>
-        <p>หากต้องการกลับไปหน้าฟอร์ม ให้คลิกปุ่มด้านล่างนี้</p>
-        <p><a class="manual-back" href="index.html">กลับไปยังหน้าหลัก JD Online</a></p>
+    <div class="page">
+        <h1>คู่มือการใช้งาน JD Online</h1>
+        <p class="subtitle">ฉบับย่อ อ่านจบใน 3 นาที — ระบบส่งแบบฟอร์มบรรยายลักษณะงาน (JD) และเซ็นออนไลน์ ไม่ต้องพิมพ์กระดาษ</p>
+
+        <h2>ภาพรวม: เอกสาร 1 ฉบับ เดินทาง 4 ขั้น</h2>
+        <div class="flow">
+            <div class="flow-step">
+                <span class="num">1</span>
+                <strong>ผู้จัดทำกรอกฟอร์ม</strong>
+                <span>กรอกข้อมูล เซ็น แล้วส่งให้หัวหน้า</span>
+            </div>
+            <div class="flow-step">
+                <span class="num">2</span>
+                <strong>หัวหน้าอนุมัติ</strong>
+                <span>เปิดลิงก์จากอีเมล เซ็นอนุมัติ</span>
+            </div>
+            <div class="flow-step">
+                <span class="num">3</span>
+                <strong>HR ตรวจและเซ็นปิด</strong>
+                <span>เปิดลิงก์จากอีเมล เซ็นปิดเอกสาร</span>
+            </div>
+            <div class="flow-step">
+                <span class="num">4</span>
+                <strong>เสร็จสมบูรณ์</strong>
+                <span>ทุกคนดาวน์โหลด PDF เก็บได้</span>
+            </div>
+        </div>
+        <div class="flow-note">
+            💡 <strong>จำแค่นี้พอ:</strong> ถึงคิวของคุณเมื่อไหร่ ระบบจะ<strong>ส่งอีเมล</strong>หาคุณเอง —
+            เปิดลิงก์ในอีเมล → กรอก<strong>รหัส 8 ตัว</strong>ที่แนบมาในอีเมลฉบับเดียวกัน → เซ็น → กดปุ่มสีน้ำเงิน เสร็จ!
+        </div>
+
+        <h2>คุณคือใคร? อ่านเฉพาะส่วนของคุณพอ</h2>
+
+        <div class="role">
+            <h3>🖊️ ผู้จัดทำ (คนเริ่มเรื่อง)</h3>
+            <p class="who">พนักงาน/หัวหน้างานที่ต้องการจัดทำ JD</p>
+            <ol>
+                <li>เปิดเว็บ JD Online หน้าแรก</li>
+                <li>กรอกข้อมูลตำแหน่งงานให้ครบ (ช่องไหนขาด ระบบจะขึ้น<strong>กรอบแดง</strong>บอกเอง)</li>
+                <li>เซ็นในช่อง <strong>ผู้จัดทำ</strong> และช่อง <strong>พนักงาน</strong> พร้อมพิมพ์ชื่อใต้ลายเซ็น</li>
+                <li>กรอก <strong>อีเมลของหัวหน้า</strong> (ผู้อนุมัติ) ที่ด้านล่างสุดของหน้า</li>
+                <li>กดปุ่ม <span class="btn-name">ส่งอีเมลหาผู้อนุมัติ</span> แล้วกดยืนยัน</li>
+            </ol>
+            <p class="done">✅ เสร็จแล้ว! รอระบบแจ้งผลทางอีเมล ไม่ต้องทำอะไรต่อ</p>
+        </div>
+
+        <div class="role">
+            <h3>✅ หัวหน้า / ผู้อนุมัติ</h3>
+            <p class="who">ผู้จัดการที่ได้รับอีเมลขออนุมัติ JD</p>
+            <ol>
+                <li>เปิดอีเมลจากระบบ กด<strong>ลิงก์</strong>ในอีเมล</li>
+                <li>กรอก<strong>รหัส 8 ตัว</strong>ที่อยู่ในอีเมลฉบับเดียวกัน</li>
+                <li>อ่านตรวจข้อมูล JD (แก้ไขไม่ได้ ดูอย่างเดียว)</li>
+                <li>เซ็นในช่อง <strong>ผู้อนุมัติ</strong> พร้อมพิมพ์ชื่อใต้ลายเซ็น</li>
+                <li>กดปุ่ม <span class="btn-name">อนุมัติและบันทึก</span></li>
+            </ol>
+            <p class="done">✅ เสร็จแล้ว! ระบบส่งต่อให้ HR อัตโนมัติ</p>
+        </div>
+
+        <div class="role">
+            <h3>🧑‍💼 เจ้าหน้าที่ HR</h3>
+            <p class="who">HR ที่ได้รับอีเมลแจ้งว่ามีเอกสารรอตรวจ</p>
+            <ol>
+                <li>เปิดอีเมลจากระบบ กด<strong>ลิงก์</strong>ในอีเมล</li>
+                <li>กรอก<strong>รหัส 8 ตัว</strong>ที่อยู่ในอีเมลฉบับเดียวกัน</li>
+                <li>ตรวจข้อมูลและลายเซ็นของผู้จัดทำกับผู้อนุมัติ</li>
+                <li>เซ็นในช่อง <strong>ผู้ตรวจสอบ (HR Dept)</strong> พร้อมพิมพ์ชื่อ</li>
+                <li>กดปุ่ม <span class="btn-name">บันทึกลายเซ็น HR และเสร็จสิ้น</span></li>
+            </ol>
+            <p class="done">✅ เอกสารสมบูรณ์ ดาวน์โหลด PDF เก็บเข้าแฟ้มได้เลย</p>
+        </div>
+
+        <h2>วิธีเซ็น (เหมือนกันทุกหน้า เลือกได้ 2 แบบ)</h2>
+        <div class="sign-ways">
+            <div class="sign-way">
+                <strong>✏️ แบบที่ 1: วาดเอง</strong>
+                <p>กดปุ่ม "วาด" แล้วใช้เมาส์ (หรือนิ้ว บนมือถือ) เซ็นลงในกรอบเส้นประได้เลย</p>
+            </div>
+            <div class="sign-way">
+                <strong>🖼️ แบบที่ 2: อัปโหลดรูป</strong>
+                <p>กดปุ่ม "อัปโหลด" แล้วเลือกรูปถ่ายลายเซ็นจากเครื่อง (ไฟล์ PNG หรือ JPG)</p>
+            </div>
+        </div>
+        <p>เซ็นพลาด? กดปุ่ม <strong>ล้าง / Reset</strong> ใต้กรอบ แล้วเซ็นใหม่ได้ไม่จำกัด และอย่าลืม<strong>พิมพ์ชื่อ-นามสกุล</strong>ในช่องใต้ลายเซ็นทุกครั้ง</p>
+
+        <h2>ติดปัญหา? ดูตรงนี้ก่อน</h2>
+        <ul class="faq">
+            <li>
+                <div class="q">ไม่ได้รับอีเมลเลย</div>
+                <div class="a">เช็คโฟลเดอร์ <strong>Junk / Spam</strong> ก่อน ถ้ายังไม่เจอ แจ้ง HR ให้ส่งลิงก์ให้ใหม่</div>
+            </li>
+            <li>
+                <div class="q">กดส่งแล้วไม่ไป / ระบบไม่ยอมให้ส่ง</div>
+                <div class="a">เลื่อนดูช่องที่ขึ้น<strong>กรอบแดง</strong> — กรอกให้ครบ เซ็นให้ครบ แล้วกดส่งอีกครั้ง</div>
+            </li>
+            <li>
+                <div class="q">กรอกรหัส 8 ตัวแล้วไม่ผ่าน</div>
+                <div class="a">พิมพ์ตามอีเมลทีละตัว (ตัวเล็ก-ใหญ่ไม่มีผล) รหัสจะ<strong>ไม่มี</strong>เลข 0, 1 และตัว O, I ถ้าพลาดครบ 5 ครั้ง ให้ติดต่อ HR</div>
+            </li>
+            <li>
+                <div class="q">เซ็นไว้แล้วลายเซ็นหาย</div>
+                <div class="a">อย่าปิดหรือรีเฟรชหน้าก่อนกดปุ่มบันทึก — ถ้าหายแล้ว ให้เซ็นใหม่แล้วกดบันทึกทันที</div>
+            </li>
+            <li>
+                <div class="q">อยากได้ไฟล์ PDF</div>
+                <div class="a">กดปุ่ม <strong>บันทึกเป็น PDF</strong> ที่ด้านล่างของหน้า แล้วเลือก "Save as PDF" ในหน้าต่างพิมพ์</div>
+            </li>
+        </ul>
+
+        <p style="margin-top:24px;">❓ ปัญหาอื่นนอกเหนือจากนี้ ติดต่อ<strong>ฝ่ายบุคคล (HR)</strong> ได้โดยตรง</p>
+
+        <div class="actions">
+            <a class="btn-back" href="index.html">← กลับหน้าฟอร์ม JD</a>
+            <button class="btn-print" onclick="window.print()">🖨️ พิมพ์ / บันทึกคู่มือเป็น PDF</button>
+        </div>
+
+        <div class="footer">
+            FM-HR-01/01 Rev.02 | คู่มือฉบับย่อสำหรับผู้ใช้งานทั่วไป —
+            ผู้ดูแลระบบดูฉบับละเอียดได้ที่ <a href="คู่มือการใช้งาน_JD_Online.docx">คู่มือฉบับเต็ม (DOCX)</a>
+        </div>
     </div>
 </body>
 

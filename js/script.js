@@ -148,8 +148,9 @@ $(document).ready(function () {
         const boxId = '#sig-box-' + id;
         // disable mode controls and file inputs and clear button
         $(boxId + ' .sig-controls input, ' + boxId + ' .sig-file-input, ' + boxId + ' .btn-clear').prop('disabled', true);
-        // prevent drawing on canvas
+        // prevent drawing on canvas; the "sign here" hint would be misleading
         $(boxId + ' canvas').css('pointer-events', 'none');
+        $(boxId + ' .sig-draw-hint').hide();
         // subtle disabled style and helpful note
         $(boxId).css('opacity', '0.7');
         $(boxId).append('<div class="sig-locked-note" style="color:#888;font-size:12px;margin-top:6px;">(ปิดการแก้ไขเฉพาะ HR/ผู้อนุมัติ)</div>');
@@ -167,9 +168,12 @@ function initSignatureBox(id) {
         var mode = $(this).val();
         if (mode === 'draw') {
             $(boxId + ' canvas').show();
+            // "sign here" hint only while the canvas is still blank
+            $(boxId + ' .sig-draw-hint').toggle(isCanvasBlank(canvas));
             $(boxId + ' .upload-area').hide();
         } else {
             $(boxId + ' canvas').hide();
+            $(boxId + ' .sig-draw-hint').hide();
             $(boxId + ' .upload-area').css('display', 'flex'); // Flex to center content
         }
     });
@@ -211,6 +215,7 @@ function initSignatureBox(id) {
     // Mouse events
     $(canvas).on('mousedown', function (e) {
         isDrawing = true;
+        $(boxId + ' .sig-draw-hint').hide();
         ctx.beginPath();
         const pos = getPos(e);
         ctx.moveTo(pos.x, pos.y);
@@ -229,6 +234,7 @@ function initSignatureBox(id) {
     $(canvas).on('touchstart', function (e) {
         e.preventDefault();
         isDrawing = true;
+        $(boxId + ' .sig-draw-hint').hide();
         ctx.beginPath();
         const pos = getPos(e.originalEvent);
         ctx.moveTo(pos.x, pos.y);
@@ -265,6 +271,7 @@ function initSignatureBox(id) {
     $(boxId + ' .btn-clear').on('click', function () {
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        $(boxId + ' .sig-draw-hint').show();
         // Clear upload preview
         $(previewId).attr('src', '').hide();
         $(uploadInputId).val('');

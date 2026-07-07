@@ -241,58 +241,119 @@ textarea {
     font-family: 'TH Sarabun PSK', 'Sarabun', sans-serif;
 }
 
-/* --- Signatures (Updated) --- */
-.signature-section { 
-    display: flex; 
-    justify-content: space-between; 
-    gap: 15px; 
-    margin-top: 30px; 
+/* --- Signatures (Signature Card design) --- */
+.signature-section {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 30px;
     margin-bottom: 20px; /* เพิ่มช่องว่างด้านล่างเพื่อความสวยงาม */
-    flex-wrap: wrap; 
-    page-break-inside: avoid; 
+    flex-wrap: wrap;
+    page-break-inside: avoid;
 }
-.sig-box { 
-    flex: 1; 
-    min-width: 180px; 
-    border: 1px solid #ced4da; 
-    padding: 10px; 
-    text-align: center; 
-    background: #fff; 
-    border-radius: 8px; 
+.sig-box {
+    flex: 1 1 0;
+    min-width: 210px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    border: 1px solid #e5e7eb;
+    padding: 18px 18px 20px;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(17,24,39,0.06);
     position: relative;
     margin-bottom: 8px; /* เว้นช่องว่างระหว่าง field */
 }
 .sig-title {
-    font-weight: bold;
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 12px;
     font-size: 22px;
-    color: #333;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.01em;
 }
+.sig-title .sig-title-en {
+    font-size: 16px;
+    font-weight: 500;
+    color: #9ca3af;
+    letter-spacing: 0;
+}
+/* Segmented control (วาด / อัปโหลด) — radios stay in the DOM for the JS */
 .sig-controls {
-    margin-bottom: 5px;
-    font-size: 12px;
+    display: inline-flex;
+    align-self: flex-start;
+    padding: 4px;
+    background: #f3f4f6;
+    border-radius: 12px;
+    gap: 2px;
+    margin-bottom: 12px;
 }
 .sig-controls label {
-    display: inline-block;
-    margin: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 9px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #9ca3af;
     cursor: pointer;
-    font-weight: normal;
+    transition: all .15s ease;
+    margin: 0;
 }
+.sig-controls label svg { flex: 0 0 auto; }
+.sig-controls input[type="radio"] { display: none; }
+.sig-controls label:has(input:checked) {
+    background: #ffffff;
+    color: #111827;
+    box-shadow: 0 1px 3px rgba(17,24,39,0.12);
+}
+.sig-controls label:has(input:disabled) { cursor: default; }
 .sig-area {
     position: relative;
     width: 100%;
-    height: 100px;
-    border: 2px dashed #adb5bd; 
-    background-color: #fff; 
-    border-radius: 4px;
+    height: 150px;
+    border: 2px dashed #d1d5db;
+    background-color: #fafafa;
+    border-radius: 12px;
     overflow: hidden;
 }
-.sig-canvas { 
-    width: 100%; 
+.sig-canvas {
+    width: 100%;
     height: 100%;
-    cursor: crosshair; 
-    touch-action: none; 
+    cursor: crosshair;
+    touch-action: none;
+}
+/* Centered hints inside the signature area (draw / upload empty states) */
+.sig-draw-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #c3c7cd;
+    font-size: 16px;
+    font-weight: 500;
+    pointer-events: none;
+}
+.sig-upload-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: #9ca3af;
+    font-size: 15px;
+    font-weight: 500;
+    pointer-events: none;
+}
+.sig-upload-hint .sig-hint-small {
+    font-size: 13px;
+    color: #c3c7cd;
 }
 .upload-area {
     width: 100%;
@@ -301,11 +362,15 @@ textarea {
     justify-content: center;
     align-items: center;
     position: relative;
+    cursor: pointer;
 }
+/* Hide the empty-state hint once an image is loaded (src is set) */
+.upload-area:has(.sig-img-preview:not([src=""])) .sig-upload-hint { display: none; }
 .sig-img-preview {
     max-width: 90%;
     max-height: 90%;
     object-fit: contain;
+    border-radius: 8px;
 }
 .sig-file-input {
     position: absolute;
@@ -315,10 +380,42 @@ textarea {
     cursor: pointer;
     z-index: 10;
 }
-.sig-input {
-    text-align: center; 
-    margin-top: 8px; /* เพิ่มระยะห่างให้เท่ากัน */
+/* Name block under the divider */
+.sig-name-block {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #f0f1f3;
 }
+.sig-name-label {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+}
+.sig-name-label span {
+    font-weight: 500;
+    color: #9ca3af;
+}
+.sig-name-hint {
+    display: block;
+    font-size: 14px;
+    color: #9ca3af;
+    margin-top: 1px;
+    margin-bottom: 8px;
+}
+input.sig-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 18px;
+    color: #111827;
+    background: #fbfbfc;
+    outline: none;
+    text-align: left;
+    margin-top: 0;
+}
+input.sig-input:focus { border-color: #111827; background: #fbfbfc; }
 
 /* --- Acknowledgement Section --- */
 .ack-section { 
@@ -344,12 +441,11 @@ textarea {
     gap: 20px; 
     align-items: flex-end;
 }
-.ack-sig-col { flex: 1; }
+.ack-sig-col { flex: 1; display: flex; flex-direction: column; }
 .ack-info-col { flex: 1; }
 .ack-canvas {
     width: 100%;
     height: 100%;
-    background-color: white;
     cursor: crosshair;
     touch-action: none;
 }
@@ -363,16 +459,29 @@ canvas {
     /* border handled in .sig-area now */
 }
 
-.btn-clear { 
-    background-color: #ffc107; 
-    color: #212529; 
-    border: none; 
-    padding: 2px 8px; 
-    font-size: 11px; 
-    cursor: pointer; 
-    border-radius: 4px; 
-    margin-top: 5px; 
+.btn-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-end;
+    padding: 7px 14px;
+    background: #ffffff;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all .15s ease;
 }
+.btn-clear:hover:not(:disabled) {
+    background: #fef3f2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+.btn-clear:disabled { opacity: .5; cursor: default; }
 
 /* --- Fixed Clauses --- */
 .fixed-clauses { 
@@ -525,6 +634,7 @@ canvas {
 .invalid > input[type="date"],
 .invalid > select,
 .invalid > textarea,
+.invalid .sig-name-block > input.sig-input,
 .invalid .input-wrap input[type="email"] {
     border-color: #d92d20 !important;
     box-shadow: 0 0 0 4px rgba(217, 45, 32, 0.12);
@@ -539,6 +649,7 @@ canvas {
 .valid > input[type="date"],
 .valid > select,
 .valid > textarea,
+.valid .sig-name-block > input.sig-input,
 .valid .input-wrap input[type="email"] {
     border-color: #12b76a !important;
     box-shadow: 0 0 0 4px rgba(18, 183, 106, 0.12);
@@ -623,13 +734,34 @@ canvas {
 @media print {
     body { background-color: white; padding: 0; margin: 0; }
     .container { box-shadow: none; margin: 0; padding: 0; width: 100%; max-width: 100%; }
-    .no-print, .btn-clear, .sig-controls { display: none !important; }
+    .no-print, .btn-clear, .sig-controls,
+    .sig-draw-hint, .sig-upload-hint, .sig-name-hint, .sig-locked-note { display: none !important; }
     h2 { color: black; border-bottom: 1px solid black; }
     .ack-section { border: 1px solid black; background-color: white; }
-    
-    /* Make signature borders invisible if needed, or keep dashed */
-    .sig-area { border: none; }
-    
+
+    /* Signature cards print flat: thin border, no shadow, compact padding */
+    .sig-box {
+        border: 1px solid #999;
+        border-radius: 8px;
+        box-shadow: none;
+        padding: 10px 12px 12px;
+        opacity: 1 !important;
+    }
+    .sig-title { font-size: 20px; margin-bottom: 6px; }
+    .sig-title .sig-title-en { color: #555; }
+    /* Keep the signing space, but plain. Height must match screen so a drawn
+       canvas signature is not squashed when the element is rescaled. */
+    .sig-area { border: none; background: transparent; border-radius: 0; }
+    .sig-name-block { margin-top: 6px; padding-top: 6px; border-top: 1px solid #ccc; }
+    .sig-name-label { color: #000; }
+    .sig-name-label span { color: #555; }
+    input.sig-input {
+        border: none;
+        background: transparent;
+        padding: 2px 0;
+        text-align: center;
+    }
+
     input::placeholder, textarea::placeholder { color: transparent; }
     textarea { resize: none; overflow: visible; height: auto !important; border: none; border-bottom: 1px solid #ccc; }
     /* Selects print as clean blank boxes: hide the dropdown arrow, and hide the
