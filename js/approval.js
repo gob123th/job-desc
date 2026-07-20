@@ -88,6 +88,8 @@ $(document).ready(async function () {
         // By default inputs are readonly; enable approver controls
         $('input, textarea, select, button').prop('disabled', true);
         $('#sig-box-3 input, #uploadSig3, #sig-box-3 .btn-clear, #SignName3, #btnApprove, #btnPDF').prop('disabled', false);
+        // The approver may revise the Specific Duties before approving.
+        $('#responsibilities').prop('disabled', false);
         $('#sig-box-3 canvas').css('pointer-events', 'auto');
 
         // Initialize approver signature box (3)
@@ -132,7 +134,8 @@ $(document).ready(async function () {
 
                 const updateData = {
                     status: 'APPROVED',
-                    approvedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    responsibilities: $('#responsibilities').val() || ''
                 };
 
                 if (clearedApprover && !apprSig && hadApproverSig) {

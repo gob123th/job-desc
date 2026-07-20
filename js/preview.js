@@ -5,6 +5,22 @@ $(document).ready(function () {
       $(this).hide();
     }
   });
+
+  // This page doesn't load script.js, so it needs its own print prep:
+  // mirror the (editable) duties textarea into the print-only div, and print
+  // the Thai start date instead of the raw picker. See css @media print.
+  window.addEventListener('beforeprint', function () {
+    const ta = document.getElementById('responsibilities');
+    const mirror = document.getElementById('responsibilitiesPrint');
+    if (ta && mirror) mirror.textContent = ta.value;
+    $('input[type="date"]').each(function () {
+      $(this).toggleClass('print-empty-date', !this.value);
+    });
+    $('#startDate').toggleClass('print-thai-date', !!$('#startDate').val());
+  });
+  window.addEventListener('afterprint', function () {
+    $('input.print-empty-date').removeClass('print-empty-date');
+  });
 });
 $(document).ready(async function () {
     
@@ -42,23 +58,23 @@ $(document).ready(async function () {
         $('#location').val(data.location || '');
         $('#level').val(data.level || '');
         $('#responsibilities').val(data.responsibilities || '');
-        // Grow the read-only textarea to fit its content so all the duties show
-        // on screen (the textarea clips with overflow hidden otherwise).
-        const respTa = document.getElementById('responsibilities');
-        if (respTa) {
-            respTa.style.height = 'auto';
-            respTa.style.height = respTa.scrollHeight + 'px';
-        }
-        // Print-only mirror — full duties text for PDF/print (textarea clips it)
-        $('#responsibilitiesPrint').text(data.responsibilities || '');
+        // Grow the textarea to fit its content so all the duties show on screen
+        // (it clips with overflow hidden otherwise). Also re-grow while HR edits.
+        autoExpandTextarea(document.getElementById('responsibilities'));
+        $('#responsibilities').on('input', function () { autoExpandTextarea(this); });
 
-        // Education & Experience
+        // Education & Experience. These are flattened into single text fields
+        // here, so only write them back when HR actually changed them —
+        // see the save handler below.
+        let initialEduText = '';
+        let initialExpText = '';
         try {
             const edu = data.education || {};
-            const eduStr = (edu.levels && edu.levels.length) ? edu.levels.join(', ') : (edu.major || '');
-            $('#educationText').val(eduStr);
+            initialEduText = (edu.levels && edu.levels.length) ? edu.levels.join(', ') : (edu.major || '');
+            $('#educationText').val(initialEduText);
             const exp = data.experience || [];
-            $('#experienceText').val(exp.length ? exp.join(', ') : '');
+            initialExpText = exp.length ? exp.join(', ') : '';
+            $('#experienceText').val(initialExpText);
         } catch (e) { }
 
         // Signatures
@@ -66,60 +82,53 @@ $(document).ready(async function () {
         // Track cleared state for signatures (so we can delete fields if user clears)
         const clearedSigs = {};
 
-        if (sigs.requestedBy) $('#previewSig1').attr('src', sigs.requestedBy).show();
-        if (sigs.approver) $('#previewSig3').attr('src', sigs.approver).show();
-        // HR signature: prefer sigs.hr, otherwise fallback to requestedBy if present
-        if (sigs.hr) {
-            // HR previously signed — show in upload mode
-            $('#previewSig2').attr('src', sigs.hr).show();
-            $('input[name="sigType2"][value="upload"]').prop('checked', true);
-            if (sigs.hrName) {
-                $('#SignName2').val(sigs.hrName);
-                $('#SignName2').prop('disabled', false).removeClass('disabled-input');
+        // All four boxes are editable here — an existing signature shows in
+        // upload mode, an empty one defaults to draw so it can be signed.
+        const SIG_FIELDS = {
+            1: 'requestedBy',
+            2: 'hr',
+            3: 'approver',
+            4: 'employee'
+        };
+        Object.keys(SIG_FIELDS).forEach(function (id) {
+            const existing = sigs[SIG_FIELDS[id]];
+            if (existing) {
+                $('#previewSig' + id).attr('src', existing).show();
+                $('input[name="sigType' + id + '"][value="upload"]').prop('checked', true);
+            } else {
+                $('input[name="sigType' + id + '"][value="draw"]').prop('checked', true);
             }
-        } else {
-            // HR hasn't signed yet — default to draw mode (empty canvas)
-            $('input[name="sigType2"][value="draw"]').prop('checked', true);
-        }
-        clearedSigs[2] = false;
+            clearedSigs[id] = false;
+        });
 
-        // Approver signature from Step 2 (read-only)
-        if (sigs.approverName) $('#SignName3').val(sigs.approverName);
-        // Employee signature carried over from Step 1 (read-only)
-        if (sigs.employee) $('#previewSig4').attr('src', sigs.employee).show();
-
-        // Names for signatures
+        // Names under the signatures
         if (sigs.requestedByName) $('#SignName1').val(sigs.requestedByName);
-        if (sigs.hrName) {
-            $('#SignName2').val(sigs.hrName);
-            // make sure HR name field is editable in preview
-            $('#SignName2').prop('disabled', false);
-            $('#SignName2').removeClass('disabled-input');
-        }
+        if (sigs.hrName) $('#SignName2').val(sigs.hrName);
         if (sigs.approverName) $('#SignName3').val(sigs.approverName);
 
         // expose clearedSigs map for other handlers (attach to docRef element)
         $(document).data('clearedSigs', clearedSigs);
 
         if (data.employeeName) $('#employeeName').val(data.employeeName);
-        // Show Thai date but keep the raw ISO value for saving back to Firestore
-        if (data.startDate) $('#startDate').val(formatThaiDate(data.startDate)).data('iso', data.startDate);
+        // The picker needs a plain ISO value; the Thai text beside it is what
+        // gets printed (see .print-thai-date in css @media print).
+        if (data.startDate) $('#startDate').val(normalizeStartDate(data.startDate));
+        $('#startDateThai').text(formatThaiDate($('#startDate').val()));
+        $('#startDate').on('change input', function () {
+            $('#startDateThai').text(formatThaiDate(this.value));
+        });
 
         // Ensure static logo is displayed
         $('#logoPreview').attr('src', 'img/logo.jpg').show();
 
-        // Disable all inputs by default and enable only HR controls
-        $('input, textarea, select, button').prop('disabled', true);
-        // enable HR draw/upload controls and name input
-        $('#sig-box-2 input, #uploadSig2, #sig-box-2 .btn-clear, #SignName2, #btnEmail, #btnPDF').prop('disabled', false);
-        // allow HR canvas interactions
-        $('#sig-box-2 canvas').css('pointer-events', 'auto');
+        // HR/Admin reviews and corrects the whole document here, so every
+        // field and every signature box stays editable.
+        $('input, textarea, select, button').prop('disabled', false);
+        $('.sig-box canvas, .ack-sig-col canvas').css('pointer-events', 'auto');
+        $('#SignName1, #SignName2, #SignName3, #employeeName, #startDate').removeClass('disabled-input');
 
-        // Re-enable general fields and KPI inputs so they display like index.html (readonly)
-        $('#positionName, #DeptName, #location, #level, #responsibilities, #kpi1_name, #kpi1_target, #kpi2_name, #kpi2_target, #employeeName, #startDate, #SignName1, #SignName3').prop('disabled', false);
-
-        // Initialize interactive signature box for HR (2) only
-        [2].forEach(function (id) { initSignatureBox(id); });
+        // Initialize all four interactive signature boxes
+        [1, 2, 3, 4].forEach(function (id) { initSignatureBox(id); });
 
         // BtnEmail: save HR signature and mark document COMPLETED
         $('#btnEmail').on('click', async function () {
@@ -148,36 +157,50 @@ $(document).ready(async function () {
             if (!confirmed) return;
             try {
                 JDUI.loading.show('กำลังบันทึกลายเซ็นและอัปเดตเอกสาร');
-                const apprSig = getSignatureData(3); // likely null since approver read-only
-                const hrName = $('#SignName2').val() || null;
-                const apprName = $('#SignName3').val() || null;
 
                 const updateData = {
                     status: 'COMPLETED',
-                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    // HR may revise any of the form fields before completing.
+                    positionName: $('#positionName').val() || '',
+                    department: $('#DeptName').val() || '',
+                    location: $('#location').val() || '',
+                    level: $('#level').val() || '',
+                    responsibilities: $('#responsibilities').val() || ''
                 };
+
+                // Education/experience are shown flattened into one text field
+                // each, so writing them back always loses the original
+                // levels/major (or per-item) split. Only pay that cost when HR
+                // actually edited the field.
+                const eduText = ($('#educationText').val() || '').trim();
+                if (eduText !== initialEduText.trim()) {
+                    updateData['education'] = { levels: splitList(eduText), major: '' };
+                }
+                const expText = ($('#experienceText').val() || '').trim();
+                if (expText !== initialExpText.trim()) {
+                    updateData['experience'] = splitList(expText);
+                }
 
                 const cleared = $(document).data('clearedSigs') || {};
 
-                // hr signature handling: if user cleared and did not provide new signature -> delete field
-                if (cleared[2]) {
-                    updateData['signatures.hr'] = firebase.firestore.FieldValue.delete();
-                } else if (hrSig !== null) {
-                    updateData['signatures.hr'] = hrSig;
-                }
+                // Every box is editable, so each one saves the same way: a box
+                // the user cleared and left empty removes the stored signature,
+                // otherwise a drawn/uploaded image replaces it.
+                Object.keys(SIG_FIELDS).forEach(function (id) {
+                    const sig = getSignatureData(Number(id));
+                    const field = 'signatures.' + SIG_FIELDS[id];
+                    if (sig !== null) updateData[field] = sig;
+                    else if (cleared[id]) updateData[field] = firebase.firestore.FieldValue.delete();
+                });
 
-                // approver is read-only in preview; if apprSig exists, set it (unlikely)
-                if (apprSig !== null) updateData['signatures.approver'] = apprSig;
-
-                if (hrName !== null) updateData['signatures.hrName'] = hrName;
-                if (apprName !== null) updateData['signatures.approverName'] = apprName;
+                updateData['signatures.requestedByName'] = $('#SignName1').val() || '';
+                updateData['signatures.hrName'] = $('#SignName2').val() || '';
+                updateData['signatures.approverName'] = $('#SignName3').val() || '';
 
                 // include employee acknowledgement fields if present
-                const employeeName = $('#employeeName').val() || null;
-                // Normalize in case the stored value carried a Buddhist-era year
-                const startDate = normalizeStartDate($('#startDate').data('iso')) || null;
-                if (employeeName !== null) updateData['employeeName'] = employeeName;
-                if (startDate !== null) updateData['startDate'] = startDate;
+                updateData['employeeName'] = $('#employeeName').val() || '';
+                updateData['startDate'] = normalizeStartDate($('#startDate').val()) || null;
 
                 const docRefToUpdate = db.collection('job_descriptions').doc(docId);
                 await docRefToUpdate.update(updateData);
@@ -193,6 +216,18 @@ $(document).ready(async function () {
     } catch (err) {
         console.error(err);
         $('.preview-note').html('⚠️ เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    }
+
+    // Resize a textarea so all its text is visible (no internal scroll/clip).
+    function autoExpandTextarea(ta) {
+        if (!ta) return;
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+    }
+
+    // "a, b , c" -> ["a", "b", "c"] — mirrors how these lists are joined for display.
+    function splitList(text) {
+        return text.split(',').map(s => s.trim()).filter(Boolean);
     }
 
     // --- Signature helpers ---

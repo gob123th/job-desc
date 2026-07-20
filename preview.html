@@ -56,21 +56,21 @@
         <div class="form-row">
             <div class="form-group">
                 <label>ชื่อตำแหน่ง (Position Title):</label>
-                <input type="text" id="positionName" readonly class="disabled-input">
+                <input type="text" id="positionName">
             </div>
             <div class="form-group">
                 <label>แผนก/ฝ่าย (Department):</label>
-                <input type="text" id="DeptName" readonly class="disabled-input">
+                <input type="text" id="DeptName">
             </div>
         </div>
         <div class="form-row">
             <div class="form-group">
                 <label>สถานที่ปฏิบัติงาน (Location):</label>
-                <input type="text" id="location" readonly class="disabled-input">
+                <input type="text" id="location">
             </div>
             <div class="form-group">
                 <label>ระดับตำแหน่ง (Level):</label>
-                <input type="text" id="level" readonly class="disabled-input">
+                <input type="text" id="level">
             </div>
         </div>
 
@@ -79,11 +79,11 @@
         <div class="form-row">
             <div class="form-group">
                 <label>วุฒิการศึกษา:</label>
-                <input type="text" id="educationText" readonly class="disabled-input">
+                <input type="text" id="educationText">
             </div>
             <div class="form-group">
                 <label>ประสบการณ์:</label>
-                <input type="text" id="experienceText" readonly class="disabled-input">
+                <input type="text" id="experienceText">
             </div>
         </div>
 
@@ -91,34 +91,82 @@
         <h2>3. หน้าที่ความรับผิดชอบ (Key Responsibilities)</h2>
         <div class="form-group">
             <label>งานหลักและหน้าที่เฉพาะทาง (Specific Duties):</label>
-            <textarea id="responsibilities" class="auto-expand has-print-mirror" readonly></textarea>
+            <textarea id="responsibilities" class="auto-expand has-print-mirror"></textarea>
             <!-- Print-only mirror: textareas clip long text in PDF/print -->
             <div id="responsibilitiesPrint" class="responsibilities-print"></div>
         </div>
 
         <!-- Signatures (Preview-only) -->
         <div class="signature-section">
-            <!-- Box 1 (Requested By) - read-only image + name -->
+            <!-- Box 1 (Requested By) - interactive: HR may correct this signature -->
             <div class="sig-box" id="sig-box-1">
                 <span class="sig-title">ผู้จัดทำ <span class="sig-title-en">(Requested By)</span></span>
-                <div class="sig-area">
-                    <img id="previewSig1" class="sig-img-preview" src="" alt="Requested By signature">
+                <div class="sig-controls no-print">
+                    <label><input type="radio" name="sigType1" value="draw" checked>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                        วาด</label>
+                    <label><input type="radio" name="sigType1" value="upload">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        อัปโหลด</label>
                 </div>
+                <div class="sig-area">
+                    <canvas id="sig1" class="sig-canvas"></canvas>
+                    <div class="sig-draw-hint no-print">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                        <span>เซ็นลายเซ็นที่นี่</span>
+                    </div>
+                    <div class="upload-area" style="display:none;">
+                        <input type="file" id="uploadSig1" accept="image/*" class="sig-file-input">
+                        <div class="sig-upload-hint no-print">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <span>คลิกเพื่ออัปโหลดรูปลายเซ็น</span>
+                            <span class="sig-hint-small">PNG, JPG</span>
+                        </div>
+                        <img id="previewSig1" class="sig-img-preview" src="" alt="Requested By signature">
+                    </div>
+                </div>
+                <button class="btn-clear no-print" data-target="1">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    ล้าง / Reset</button>
                 <div class="sig-name-block">
                     <label class="sig-name-label" for="SignName1">ผู้จัดทำ <span>(Requested By)</span></label>
-                    <input id="SignName1" type="text" readonly class="disabled-input sig-input" placeholder="">
+                    <input id="SignName1" type="text" placeholder="คำนำหน้า ชื่อ นามสกุล" class="sig-input">
                 </div>
             </div>
 
-            <!-- Box 3 (Approver) - read-only, shows sig from approval step -->
+            <!-- Box 3 (Approver) - interactive: HR may correct this signature -->
             <div class="sig-box" id="sig-box-3">
                 <span class="sig-title">ผู้อนุมัติ <span class="sig-title-en">(Approved By)</span></span>
-                <div class="sig-area">
-                    <img id="previewSig3" class="sig-img-preview" src="" alt="Approver signature">
+                <div class="sig-controls no-print">
+                    <label><input type="radio" name="sigType3" value="draw" checked>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                        วาด</label>
+                    <label><input type="radio" name="sigType3" value="upload">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        อัปโหลด</label>
                 </div>
+                <div class="sig-area">
+                    <canvas id="sig3" class="sig-canvas"></canvas>
+                    <div class="sig-draw-hint no-print">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                        <span>เซ็นลายเซ็นที่นี่</span>
+                    </div>
+                    <div class="upload-area" style="display:none;">
+                        <input type="file" id="uploadSig3" accept="image/*" class="sig-file-input">
+                        <div class="sig-upload-hint no-print">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <span>คลิกเพื่ออัปโหลดรูปลายเซ็น</span>
+                            <span class="sig-hint-small">PNG, JPG</span>
+                        </div>
+                        <img id="previewSig3" class="sig-img-preview" src="" alt="Approver signature">
+                    </div>
+                </div>
+                <button class="btn-clear no-print" data-target="3">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    ล้าง / Reset</button>
                 <div class="sig-name-block">
                     <label class="sig-name-label" for="SignName3">ผู้อนุมัติ <span>(Approved By)</span></label>
-                    <input id="SignName3" type="text" readonly class="disabled-input sig-input" placeholder="">
+                    <input id="SignName3" type="text" placeholder="คำนำหน้า ชื่อ นามสกุล" class="sig-input">
                 </div>
             </div>
 
@@ -171,15 +219,40 @@
 
             <div class="ack-flex">
                 <div class="ack-sig-col" id="sig-box-4">
-                    <div class="sig-area">
-                        <img id="previewSig4" class="sig-img-preview" src="" alt="Employee signature">
+                    <div class="sig-controls no-print">
+                        <label><input type="radio" name="sigType4" value="draw" checked>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                            วาด</label>
+                        <label><input type="radio" name="sigType4" value="upload">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            อัปโหลด</label>
                     </div>
+                    <div class="sig-area">
+                        <canvas id="sig4" class="ack-canvas"></canvas>
+                        <div class="sig-draw-hint no-print">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                            <span>เซ็นลายเซ็นที่นี่</span>
+                        </div>
+                        <div class="upload-area" style="display:none;">
+                            <input type="file" id="uploadSig4" accept="image/*" class="sig-file-input">
+                            <div class="sig-upload-hint no-print">
+                                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <span>คลิกเพื่ออัปโหลดรูปลายเซ็น</span>
+                                <span class="sig-hint-small">PNG, JPG</span>
+                            </div>
+                            <img id="previewSig4" class="sig-img-preview" src="" alt="Employee signature">
+                        </div>
+                    </div>
+                    <button class="btn-clear no-print" data-target="4">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        ล้าง / Reset</button>
                 </div>
                 <div class="ack-info-col">
                     <label>ลงชื่อพนักงาน (Employee Signature):</label>
-                    <input type="text" id="employeeName" readonly class="disabled-input">
+                    <input type="text" id="employeeName">
                     <div class="input-date-wrapper">
-                        วันที่เริ่มงาน (Start Date): <input type="text" id="startDate" readonly class="disabled-input">
+                        วันที่เริ่มงาน (Start Date): <input id="startDate" type="date" class="input-date">
+                        <span id="startDateThai" class="thai-date-text"></span>
                     </div>
                 </div>
             </div>
