@@ -5,6 +5,11 @@ $(document).ready(function () {
       $(this).hide();
     }
   });
+  // A stored signature that fails to decode would otherwise render as a
+  // broken-image icon over the empty box (CSS only covers a missing src).
+  $(".sig-img-preview").on("error", function () {
+    $(this).removeAttr("src").hide();
+  });
 
   // This page doesn't load script.js, so it needs its own print prep:
   // mirror the (editable) duties textarea into the print-only div, and print
@@ -121,11 +126,32 @@ $(document).ready(async function () {
         // Ensure static logo is displayed
         $('#logoPreview').attr('src', 'img/logo.jpg').show();
 
-        // HR/Admin reviews and corrects the whole document here, so every
-        // field and every signature box stays editable.
-        $('input, textarea, select, button').prop('disabled', false);
-        $('.sig-box canvas, .ack-sig-col canvas').css('pointer-events', 'auto');
-        $('#SignName1, #SignName2, #SignName3, #employeeName, #startDate').removeClass('disabled-input');
+        // A finished document is locked. Admins reopen it for corrections via
+        // the button on contract.html, which links here with ?edit=1.
+        const isCompleted = data.status === 'COMPLETED';
+        const adminEditing = isCompleted
+            && urlParams.get('edit') === '1'
+            && !!(await window.JDAccess.currentUser());
+
+        if (isCompleted && !adminEditing) {
+            $('input, textarea, select').prop('disabled', true);
+            $('.sig-controls, .btn-clear, #btnEmail').hide();
+            $('.preview-note').html('เอกสารนี้เสร็จสมบูรณ์แล้ว (อ่านอย่างเดียว) — ผู้ดูแลระบบสามารถกดแก้ไขได้จากหน้าเอกสารที่เสร็จสิ้น');
+        } else {
+            // HR/Admin reviews and corrects the whole document here, so every
+            // field and every signature box stays editable.
+            $('input, textarea, select, button').prop('disabled', false);
+            $('.sig-box canvas, .ack-sig-col canvas').css('pointer-events', 'auto');
+            $('#SignName1, #SignName2, #SignName3, #employeeName, #startDate').removeClass('disabled-input');
+        }
+
+        if (adminEditing) {
+            // Saving keeps the document COMPLETED — this is a correction, not
+            // a re-run of the approval flow.
+            $('.action-title').text('แก้ไขเอกสาร (Admin)');
+            $('.action-hint').text('แก้ไขข้อมูลหรือลายเซ็นได้ทุกจุด จากนั้นกดบันทึก เอกสารจะยังคงสถานะเสร็จสิ้น');
+            $('#btnEmail').text('บันทึกการแก้ไข');
+        }
 
         // Initialize all four interactive signature boxes
         [1, 2, 3, 4].forEach(function (id) { initSignatureBox(id); });
@@ -150,10 +176,15 @@ $(document).ready(async function () {
             $('#sig-box-2').removeClass('invalid');
             $('#sig-box-2 .sig-error').remove();
 
-            const confirmed = await JDUI.confirm('ระบบจะบันทึกลายเซ็น HR และทำเครื่องหมายว่าเอกสารนี้เสร็จสมบูรณ์', {
-                title: 'ยืนยันการลงนาม HR',
-                okText: 'บันทึกและเสร็จสิ้น'
-            });
+            const confirmed = adminEditing
+                ? await JDUI.confirm('ระบบจะบันทึกการแก้ไขทับข้อมูลเดิม โดยเอกสารยังคงสถานะเสร็จสิ้น', {
+                    title: 'ยืนยันการแก้ไขเอกสาร',
+                    okText: 'บันทึกการแก้ไข'
+                })
+                : await JDUI.confirm('ระบบจะบันทึกลายเซ็น HR และทำเครื่องหมายว่าเอกสารนี้เสร็จสมบูรณ์', {
+                    title: 'ยืนยันการลงนาม HR',
+                    okText: 'บันทึกและเสร็จสิ้น'
+                });
             if (!confirmed) return;
             try {
                 JDUI.loading.show('กำลังบันทึกลายเซ็นและอัปเดตเอกสาร');
@@ -205,7 +236,11 @@ $(document).ready(async function () {
                 const docRefToUpdate = db.collection('job_descriptions').doc(docId);
                 await docRefToUpdate.update(updateData);
                 JDUI.loading.hide();
-                JDUI.success('บันทึกลายเซ็น HR เรียบร้อยแล้ว เอกสาร JD เสร็จสมบูรณ์', { title: 'เสร็จสมบูรณ์' });
+                if (adminEditing) {
+                    JDUI.success('บันทึกการแก้ไขเรียบร้อยแล้ว', { title: 'บันทึกสำเร็จ' });
+                } else {
+                    JDUI.success('บันทึกลายเซ็น HR เรียบร้อยแล้ว เอกสาร JD เสร็จสมบูรณ์', { title: 'เสร็จสมบูรณ์' });
+                }
             } catch (err) {
                 console.error(err);
                 JDUI.loading.hide();

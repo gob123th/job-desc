@@ -6,6 +6,11 @@ $(document).ready(function () {
     $('.sig-img-preview').each(function () {
         if (!$(this).attr('src')) $(this).hide();
     });
+    // Same for a stored signature that fails to decode (CSS only covers a
+    // missing src, not a corrupt one).
+    $('.sig-img-preview').on('error', function () {
+        $(this).removeAttr('src').hide();
+    });
 });
 
 $(document).ready(async function () {
@@ -36,6 +41,18 @@ $(document).ready(async function () {
                 '<p>กรุณาเปิดลิงก์จากอีเมลอีกครั้งและกรอกรหัสที่ถูกต้องเพื่อดูเอกสารนี้</p></div>';
             return;
         }
+
+        // Admins may reopen a finished document for corrections. The edit
+        // happens on preview.html, which already renders every field and
+        // signature box as editable; ?edit=1 unlocks it for a COMPLETED doc.
+        // This only hides a button — firestore.rules is what actually
+        // restricts writes to signed-in admins.
+        window.JDAccess.currentUser().then(function (user) {
+            if (!user) return;
+            $('#btnAdminEdit').show().on('click', function () {
+                location.href = 'preview.html?id=' + encodeURIComponent(docId) + '&edit=1';
+            });
+        });
 
         const sigs = data.signatures || {};
 

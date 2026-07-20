@@ -18,9 +18,11 @@
     <script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     <style>
         /* Contract = fully read-only view, styled like the other pages */
+        /* Centred inside the box by .sig-area > .sig-img-preview in style.css */
         .sig-img-preview {
             display: block;
-            max-width: 100%;
+            max-width: 90%;
+            max-height: 90%;
             height: auto;
         }
         .disabled-input {
@@ -185,6 +187,8 @@
             <div class="action-buttons">
                 <button class="btn-print" onclick="exportPDF()">บันทึกเป็น PDF</button>
                 <button class="btn-print" onclick="exportTemplatePDF()">Template PDF</button>
+                <!-- Admin only: revealed by contract.js when an admin is signed in -->
+                <button class="btn-email" id="btnAdminEdit" style="display:none;">แก้ไขเอกสาร (Admin)</button>
             </div>
         </div>
     </div>

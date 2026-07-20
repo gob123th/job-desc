@@ -372,6 +372,19 @@ textarea {
     object-fit: contain;
     border-radius: 8px;
 }
+/* Centre a signature that sits directly in the box (the contract view has no
+   .upload-area wrapper to centre it). Absolute + margin:auto keeps the canvas
+   and the absolutely-positioned hints beside it unaffected. */
+.sig-area > .sig-img-preview {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+}
+/* A signature <img> with no src renders as a broken-image icon + alt text.
+   Never show one — an unsigned box must look empty. !important so it still
+   wins after jQuery .show() has left an inline display on the element. */
+.sig-img-preview:not([src]),
+.sig-img-preview[src=""] { display: none !important; }
 .sig-file-input {
     position: absolute;
     width: 100%;
