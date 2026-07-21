@@ -13,6 +13,29 @@ $(document).ready(function () {
     });
 });
 
+// Fetch the JD document, preferring Firestore's local (IndexedDB) cache — a cache hit
+// costs no Firestore read. The cache is only trusted for a document this tab has already
+// fetched from the server in this session (sessionStorage marker), so reloading / going
+// back to the contract is free while a fresh visit always sees server data.
+async function loadContractDoc(docId) {
+    const ref = db.collection('job_descriptions').doc(docId);
+    const freshKey = 'jd:fetched:' + docId;
+
+    let fetchedThisSession = false;
+    try { fetchedThisSession = sessionStorage.getItem(freshKey) === '1'; } catch (e) { /* private mode */ }
+
+    if (fetchedThisSession) {
+        try {
+            const cached = await ref.get({ source: 'cache' });
+            if (cached.exists) return cached;
+        } catch (e) { /* nothing cached — fall through to the server */ }
+    }
+
+    const doc = await ref.get();
+    try { sessionStorage.setItem(freshKey, '1'); } catch (e) { /* private mode */ }
+    return doc;
+}
+
 $(document).ready(async function () {
     const urlParams = new URLSearchParams(window.location.search);
     const docId = urlParams.get('id');
@@ -23,7 +46,7 @@ $(document).ready(async function () {
     }
 
     try {
-        const doc = await db.collection('job_descriptions').doc(docId).get();
+        const doc = await loadContractDoc(docId);
         if (!doc.exists) {
             JDUI.error('ไม่พบเอกสารที่ระบุ (ID: ' + docId + ')', { title: 'ไม่พบเอกสาร' });
             return;

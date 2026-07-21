@@ -6,6 +6,7 @@
       "firebase.json",
       ".firebaserc",
       "firestore.rules",
+      "firestore.indexes.json",
       "**/.*",
       "**/node_modules/**",
       "**/*.md"
@@ -27,6 +28,7 @@
     ]
   },
   "firestore": {
-    "rules": "firestore.rules"
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }

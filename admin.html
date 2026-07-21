@@ -152,8 +152,6 @@
         }
         .chip:hover { border-color: #c3ccdc; }
         .chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
-        .chip .chip-count { background: rgba(0,0,0,.08); border-radius: 999px; padding: 1px 8px; font-size: 12px; }
-        .chip.active .chip-count { background: rgba(255,255,255,.22); }
 
         .subs-list { display: flex; flex-direction: column; gap: 10px; }
         .sub-row {
@@ -185,6 +183,11 @@
         .subs-empty, .subs-loading { text-align: center; color: var(--muted); padding: 50px 20px; background: #fff; border-radius: 12px; box-shadow: var(--shadow-sm); }
         .subs-empty .big { font-size: 40px; opacity: .6; margin-bottom: 10px; }
         .subs-loading .bar { height: 64px; border-radius: 12px; background: #eef1f7; margin-bottom: 10px; animation: pulse 1.1s ease-in-out infinite; }
+
+        /* Paging footer: the list loads one page at a time to keep Firestore reads low. */
+        .subs-more { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px 4px; }
+        .subs-more .subsMore { background: #fff; color: var(--brand); border-color: var(--line); }
+        .subs-more-note { font-size: 12px; color: var(--muted); text-align: center; }
 
         /* ============ Config cards ============ */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
@@ -296,10 +299,10 @@
                     <button class="btn btn-ghost btn-sm subsRefresh" style="background:#fff;color:var(--brand);border-color:var(--line);">↻ รีเฟรช</button>
                 </div>
                 <div class="status-filters">
-                    <button class="chip active" data-status="ALL">ทั้งหมด <span class="chip-count" data-c="ALL">0</span></button>
-                    <button class="chip" data-status="APPLICANT_SUBMITTED">⏳ รอผู้จัดการอนุมัติ <span class="chip-count" data-c="APPLICANT_SUBMITTED">0</span></button>
-                    <button class="chip" data-status="APPROVED">✍️ รอ HR ลงนาม <span class="chip-count" data-c="APPROVED">0</span></button>
-                    <button class="chip" data-status="COMPLETED">✅ เสร็จสิ้น <span class="chip-count" data-c="COMPLETED">0</span></button>
+                    <button class="chip active" data-status="ALL">ทั้งหมด</button>
+                    <button class="chip" data-status="APPLICANT_SUBMITTED">⏳ รอผู้จัดการอนุมัติ</button>
+                    <button class="chip" data-status="APPROVED">✍️ รอ HR ลงนาม</button>
+                    <button class="chip" data-status="COMPLETED">✅ เสร็จสิ้น</button>
                 </div>
                 <div class="subs-list" id="subsList" style="margin-top:16px;"></div>
             </div>

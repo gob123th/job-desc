@@ -18,8 +18,9 @@
     // In-memory mirror of Firestore, per type: [{ id, name }].
     const state = { departments: [], positions: [] };
 
-    // Submitted JD forms view-state.
-    const subs = { all: [], filter: 'ALL', q: '' };
+    // Submitted JD forms view-state. `all` holds only the pages loaded so far; `cursor` is the
+    // last Firestore snapshot of the current page, used to fetch the next one.
+    const subs = { all: [], filter: 'ALL', q: '', cursor: null, hasMore: false, loading: false };
 
     // status -> { label, css class, page to open }. Clicking a row goes to the page for its status.
     const STATUS = {
@@ -96,17 +97,6 @@
         return state[type].some(function (i) { return i.id !== exceptId && i.name.toLowerCase() === lc; });
     }
 
-    function sortState(type) {
-        state[type].sort(function (a, b) { return a.name.localeCompare(b.name); });
-    }
-
-    // Push the just-mutated in-memory list into the shared cache, so the next form load
-    // is served from cache with no Firestore read. (Mutations also clear the cache as a
-    // safety net; this overwrites it with the fresh list right away.)
-    function syncCache(type) {
-        window.JDConfig.setCache(type, state[type]);
-    }
-
     // ---------- Rendering ----------
     function render(type) {
         const $c = $card(type);
@@ -160,7 +150,18 @@
         });
     }
 
-    // ---------- Mutations (persist immediately) ----------
+    // ---------- Mutations ----------
+    // Both lists live in a single Firestore document, so every mutation is: change the
+    // in-memory list, then write the whole list back once (JDConfig.saveItems). It resolves
+    // with the normalised list, which becomes the new state and the new cache.
+    function persist(type, items) {
+        return window.JDConfig.saveItems(type, items).then(function (saved) {
+            state[type] = saved;
+            render(type);
+            return saved;
+        });
+    }
+
     function addOne(type) {
         const $c = $card(type);
         const $input = $c.find('.addInput');
@@ -172,12 +173,8 @@
         }
         $input.prop('disabled', true);
         status($c, 'กำลังเพิ่ม...', '');
-        window.JDConfig.addItem(type, name).then(function (ref) {
-            state[type].push({ id: ref.id, name: name });
-            sortState(type);
-            syncCache(type);
+        persist(type, state[type].concat([{ name: name }])).then(function () {
             $input.val('').prop('disabled', false).focus();
-            render(type);
             flash($c, '✓ เพิ่ม "' + name + '" แล้ว', 'ok');
         }).catch(function (err) {
             $input.prop('disabled', false);
@@ -204,14 +201,14 @@
         }
 
         status($c, 'กำลังบันทึก...', '');
-        window.JDConfig.updateItem(type, id, newName).then(function () {
-            item.name = newName;
-            sortState(type);
-            syncCache(type);
-            render(type);
+        const oldName = item.name;
+        const next = state[type].map(function (i) {
+            return (i.id === id) ? { id: i.id, name: newName } : i;
+        });
+        persist(type, next).then(function () {
             flash($c, '✓ บันทึกแล้ว', 'ok');
         }).catch(function (err) {
-            $input.val(item.name);
+            $input.val(oldName);
             flash($c, 'บันทึกไม่สำเร็จ: ' + err.message, 'err');
         });
     }
@@ -228,10 +225,8 @@
         }).then(function (ok) {
             if (!ok) return;
             status($c, 'กำลังลบ...', '');
-            window.JDConfig.deleteItem(type, id).then(function () {
-                state[type] = state[type].filter(function (i) { return i.id !== id; });
-                syncCache(type);
-                render(type);
+            const next = state[type].filter(function (i) { return i.id !== id; });
+            persist(type, next).then(function () {
                 flash($c, '✓ ลบ "' + item.name + '" แล้ว', 'ok');
             }).catch(function (err) {
                 flash($c, 'ลบไม่สำเร็จ: ' + err.message, 'err');
@@ -245,8 +240,9 @@
         const names = window.JDConfig.DEFAULTS[type];
         status($c, 'กำลังนำเข้า...', '');
         $c.find('.seedCardBtn').prop('disabled', true);
-        window.JDConfig.addMany(type, names).then(function () {
-            loadOne(type);
+        window.JDConfig.addMany(type, names).then(function (saved) {
+            state[type] = saved;                 // returned by the write — no re-read needed
+            render(type);
             flash($c, '✓ นำเข้า ' + names.length + ' รายการแล้ว', 'ok');
         }).catch(function (err) {
             $c.find('.seedCardBtn').prop('disabled', false);
@@ -261,35 +257,50 @@
             ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
     }
 
+    // (Re)load the first page for the active status filter. The status filter is applied by
+    // the Firestore query, so switching chips starts a fresh paged load.
     function loadSubs() {
         $('#subsList').html('<div class="subs-loading"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>');
-        window.JDConfig.loadSubmissions().then(function (items) {
-            subs.all = items;
-            updateChipCounts();
+        subs.all = [];
+        subs.cursor = null;
+        subs.hasMore = false;
+        subs.loading = true;
+
+        window.JDConfig.loadSubmissions({ status: subs.filter }).then(function (page) {
+            subs.all = page.items;
+            subs.cursor = page.cursor;
+            subs.hasMore = page.hasMore;
+            subs.loading = false;
             renderSubs();
         });
     }
 
-    function updateChipCounts() {
-        const counts = { ALL: subs.all.length, APPLICANT_SUBMITTED: 0, APPROVED: 0, COMPLETED: 0 };
-        subs.all.forEach(function (it) {
-            if (counts[it.status] !== undefined) counts[it.status]++;
-        });
-        $('.chip-count').each(function () {
-            const key = $(this).data('c');
-            $(this).text(counts[key] !== undefined ? counts[key] : 0);
+    // Append the next page to what is already on screen.
+    function loadMoreSubs() {
+        if (subs.loading || !subs.hasMore) return;
+        subs.loading = true;
+        $('.subsMore').prop('disabled', true).text('กำลังโหลด...');
+
+        window.JDConfig.loadSubmissions({ status: subs.filter, cursor: subs.cursor }).then(function (page) {
+            subs.all = subs.all.concat(page.items);
+            subs.cursor = page.cursor || subs.cursor;
+            subs.hasMore = page.hasMore;
+            subs.loading = false;
+            renderSubs();
         });
     }
+
 
     function renderSubs() {
         const $list = $('#subsList');
         $list.empty();
 
+        // The status filter is applied by the Firestore query; only the free-text search
+        // narrows the rows client-side — and it can only see the pages loaded so far.
         const rows = subs.all.filter(function (it) {
-            if (subs.filter !== 'ALL' && it.status !== subs.filter) return false;
             if (!subs.q) return true;
             const hay = (it.positionName + ' ' + it.department + ' ' + it.employeeName).toLowerCase();
-            return hay.indexOf(subs.q) !== -1;
+            return hay.includes(subs.q);
         });
 
         if (!rows.length) {
@@ -298,6 +309,7 @@
                 .append('<div class="big">📭</div>')
                 .append($('<div></div>').text(msg))
                 .appendTo($list);
+            renderMoreBar($list);
             return;
         }
 
@@ -327,6 +339,35 @@
             $('<span class="sub-arrow">›</span>').appendTo($a);
             $list.append($a);
         });
+
+        renderMoreBar($list);
+    }
+
+    // Footer under the list: "load more" while further pages exist, plus a note that the
+    // search box only covers what has been loaded so far.
+    function renderMoreBar($list) {
+        const $bar = $('<div class="subs-more"></div>');
+
+        if (subs.hasMore) {
+            $('<button class="btn btn-ghost btn-sm subsMore"></button>')
+                .text('โหลดเพิ่ม ' + window.JDConfig.SUBS_PAGE_SIZE + ' รายการ')
+                .appendTo($bar);
+        }
+
+        // The chips carry no totals (Firestore's COUNT aggregation isn't in the compat SDK,
+        // and tallying by reading every document is what the paging avoids) — so the note
+        // below the list is where the user finds out how much is on screen.
+        const label = (subs.filter === 'ALL') ? 'รายการ' : statusMeta(subs.filter).label;
+        let note;
+        if (subs.q) {
+            note = 'ค้นหาจาก ' + subs.all.length + ' ' + label + 'ที่โหลดแล้ว';
+            if (subs.hasMore) note += ' — กด "โหลดเพิ่ม" เพื่อค้นย้อนหลัง';
+        } else {
+            note = 'แสดง ' + subs.all.length + ' ' + label + (subs.hasMore ? ' ล่าสุด (ยังมีเพิ่มเติม)' : ' ทั้งหมด');
+        }
+        $('<div class="subs-more-note"></div>').text(note).appendTo($bar);
+
+        $list.append($bar);
     }
 
     // ---------- Wire up ----------
@@ -349,9 +390,10 @@
             $('.chip').removeClass('active');
             $(this).addClass('active');
             subs.filter = $(this).data('status');
-            renderSubs();
+            loadSubs();                       // the filter is part of the Firestore query now
         });
         $('.subsRefresh').on('click', loadSubs);
+        $('#subsList').on('click', '.subsMore', loadMoreSubs);
 
         $('.addBtn').on('click', function () {
             addOne($(this).closest('.card').data('doc'));

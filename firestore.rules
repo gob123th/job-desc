@@ -55,7 +55,15 @@ service cloud.firestore {
     }
 
     // ───────────────────── Master lists (config) ─────────────────────
-    // index.html reads these to populate dropdowns (public). Only admins write.
+    // Both master lists live in app_config/master as arrays, so the form loads its
+    // dropdowns with a single read. index.html reads it (public); only admins write.
+    match /app_config/{docId} {
+      allow read:  if true;
+      allow write: if isAdmin();
+    }
+
+    // LEGACY one-doc-per-item collections. Still readable as the migration source /
+    // fallback for clients that run before app_config/master exists.
     match /departments/{docId} {
       allow read:  if true;
       allow write: if isAdmin();

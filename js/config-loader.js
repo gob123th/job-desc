@@ -1,19 +1,27 @@
 // Shared config layer for the JD app: department / position master lists.
 //
-// Firestore layout — one document per item:
-//   collection "departments" / <auto-id> -> { name: "Finance",  createdAt: <ts> }
-//   collection "positions"   / <auto-id> -> { name: "IT Manager", createdAt: <ts> }
+// Firestore layout — BOTH lists live in ONE document, so loading the dropdowns costs a
+// single read instead of one read per item (~110 before):
+//   app_config/master -> { departments: [{ id, name }], positions: [{ id, name }], updatedAt }
+//
+// LEGACY layout (one doc per item, collections "departments" / "positions") is still read
+// as a fallback when app_config/master does not exist yet, and an admin visit migrates it
+// into the single doc automatically. The old collections are left in place untouched.
 //
 // Used by:
 //   - index.html  : populate the <datalist> dropdowns on the JD form
-//   - admin.html  : manage (add / edit / delete) the items, one Firestore doc each
+//   - admin.html  : manage (add / edit / delete) the items
 //
-// The form loads exactly what's in Firestore — no fallback. An empty collection means an
-// empty dropdown. DEFAULTS below is used ONLY by the admin "seed" buttons (a manual action),
+// The form loads exactly what's in Firestore — no fallback. An empty list means an empty
+// dropdown. DEFAULTS below is used ONLY by the admin "seed" buttons (a manual action),
 // never automatically.
 window.JDConfig = (function () {
-    // Firestore collection name per config type.
+    // Legacy per-item collection name per config type (read-only fallback / migration source).
     const COLLECTION = { departments: 'departments', positions: 'positions' };
+
+    // The single document holding both master lists.
+    const MASTER_PATH = { collection: 'app_config', doc: 'master' };
+    function masterRef() { return db.collection(MASTER_PATH.collection).doc(MASTER_PATH.doc); }
 
     // Built-in starter lists for the admin "seed" buttons (mirrors what used to be
     // hardcoded in index.html). Not used on the JD form.
@@ -88,13 +96,6 @@ window.JDConfig = (function () {
         } catch (e) { /* quota exceeded / private mode — caching is best-effort */ }
     }
 
-    // Overwrite the cached list for a type with a known-good list ([{ id, name }]).
-    // Lets the admin push its in-memory state straight into the cache after a mutation,
-    // so the next form load is served entirely from cache with zero Firestore reads.
-    function setCache(type, items) {
-        if (Array.isArray(items)) writeCache(type, items);
-    }
-
     // Invalidate cached lists. clearCache() with no arg clears every type.
     function clearCache(type) {
         try {
@@ -103,15 +104,45 @@ window.JDConfig = (function () {
         } catch (e) { /* ignore */ }
     }
 
-    // ---------- Per-document CRUD ----------
-    // Read every doc in a collection. Returns Promise<[{ id, name }]> sorted by name; [] on error.
-    // When useCache is true, a fresh localStorage copy is returned without hitting Firestore.
-    // Every successful network read refreshes the cache so it stays warm for the form.
-    function loadItems(type, useCache) {
-        if (useCache) {
-            const cached = readCache(type);
-            if (cached) return Promise.resolve(cached);
-        }
+    // ---------- Master document I/O ----------
+    function sortByName(items) {
+        return items.slice().sort(function (a, b) { return a.name.localeCompare(b.name); });
+    }
+
+    // Stable per-item id. Only needs to be unique within the list (the admin uses it to
+    // address rows); Firestore no longer assigns one since items aren't documents anymore.
+    function genId() {
+        return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    }
+
+    // Normalise whatever is stored under a field into [{ id, name }].
+    function toItems(raw) {
+        if (!Array.isArray(raw)) return null;
+        const out = [];
+        raw.forEach(function (entry) {
+            const name = (typeof entry === 'string') ? entry : entry?.name;
+            if (!name) return;
+            out.push({ id: entry?.id || genId(), name: name });
+        });
+        return sortByName(out);
+    }
+
+    // One in-flight read of app_config/master shared by both types, so loading the two
+    // dropdowns on a cold cache costs exactly one Firestore read (not two). Cleared by
+    // saveItems() so a mutation is followed by a fresh read.
+    let masterPromise = null;
+    function readMaster() {
+        masterPromise ||= masterRef().get()
+            .then(function (doc) { return doc.exists ? (doc.data() || {}) : null; })
+            .catch(function (err) {
+                console.error('JDConfig: failed to read ' + MASTER_PATH.collection + '/' + MASTER_PATH.doc, err);
+                return null;
+            });
+        return masterPromise;
+    }
+
+    // Read the legacy one-doc-per-item collection (pre-migration data / older deployments).
+    function readLegacy(type) {
         return db.collection(COLLECTION[type]).get()
             .then(function (snap) {
                 const out = [];
@@ -119,69 +150,115 @@ window.JDConfig = (function () {
                     const name = doc.get('name');
                     if (name) out.push({ id: doc.id, name: name });
                 });
-                out.sort(function (a, b) { return a.name.localeCompare(b.name); });
-                writeCache(type, out);
-                return out;
+                return sortByName(out);
             })
             .catch(function (err) {
-                console.error('JDConfig: failed to load collection ' + COLLECTION[type], err);
+                console.error('JDConfig: failed to load legacy collection ' + COLLECTION[type], err);
                 return [];
             });
     }
 
-    function addItem(type, name) {
-        return db.collection(COLLECTION[type]).add({ name: name, createdAt: now() })
-            .then(function (ref) { clearCache(type); return ref; });
-    }
-
-    function updateItem(type, id, name) {
-        return db.collection(COLLECTION[type]).doc(id).update({ name: name, updatedAt: now() })
-            .then(function (res) { clearCache(type); return res; });
-    }
-
-    function deleteItem(type, id) {
-        return db.collection(COLLECTION[type]).doc(id).delete()
-            .then(function (res) { clearCache(type); return res; });
-    }
-
-    // Bulk-create docs for a list of names (used by the admin seed buttons). Returns Promise.
-    function addMany(type, names) {
-        const batch = db.batch();
-        const col = db.collection(COLLECTION[type]);
-        names.forEach(function (name) {
-            batch.set(col.doc(), { name: name, createdAt: now() });
+    // ---------- Public read / write ----------
+    // Returns Promise<[{ id, name }]> sorted by name; [] on error.
+    // When useCache is true, a fresh localStorage copy is returned without hitting Firestore.
+    // Every successful network read refreshes the cache so it stays warm for the form.
+    function loadItems(type, useCache) {
+        if (useCache) {
+            const cached = readCache(type);
+            if (cached) return Promise.resolve(cached);
+        }
+        return readMaster().then(function (data) {
+            const items = data ? toItems(data[type]) : null;
+            if (items) {
+                writeCache(type, items);
+                return items;
+            }
+            // No master doc (or no field for this type) yet — fall back to the legacy
+            // collection and migrate it into the master doc. The migration write is
+            // best-effort: it only succeeds for a signed-in admin, and the public form
+            // keeps working off the legacy read either way.
+            return readLegacy(type).then(function (legacy) {
+                writeCache(type, legacy);
+                if (legacy.length) saveItems(type, legacy).catch(function () { /* not an admin */ });
+                return legacy;
+            });
         });
-        return batch.commit().then(function (res) { clearCache(type); return res; });
+    }
+
+    // Persist the full list for a type into the master document. Takes [{ id, name }] (items
+    // without an id get one) and resolves with the normalised, sorted list that was written.
+    // The whole list is written at once — item-level add/edit/delete happen in memory in the
+    // admin, then land here as a single write.
+    function saveItems(type, items) {
+        const clean = sortByName(items.map(function (i) {
+            return { id: i.id || genId(), name: i.name };
+        }));
+        const payload = { updatedAt: now() };
+        payload[type] = clean;
+        return masterRef().set(payload, { merge: true }).then(function () {
+            masterPromise = null;   // force a fresh read next time
+            writeCache(type, clean);
+            return clean;
+        });
+    }
+
+    // Build items from a list of names and persist them (used by the admin seed buttons).
+    function addMany(type, names) {
+        return saveItems(type, names.map(function (name) {
+            return { id: genId(), name: name };
+        }));
     }
 
     // ---------- Submitted JD forms (admin status list) ----------
-    // Returns Promise<[{ id, positionName, department, employeeName, status, createdAt:Date|null }]>
-    // sorted newest first; [] on error.
-    function loadSubmissions() {
-        return db.collection('job_descriptions').get()
+    // Read one PAGE of submissions instead of the whole collection — the admin list used to
+    // cost one Firestore read per submitted form on every visit.
+    //
+    // opts: { status: 'ALL'|<status>, cursor: <last doc snapshot>|null, pageSize: number }
+    // Resolves with { items, cursor, hasMore }; items are
+    // [{ id, positionName, department, employeeName, status, createdAt:Date|null }] newest first.
+    // Note: ordering is by createdAt, which every submission gets on create (js/script.js).
+    const SUBS_PAGE_SIZE = 30;
+
+    function loadSubmissions(opts) {
+        const o = opts || {};
+        const pageSize = o.pageSize || SUBS_PAGE_SIZE;
+
+        let q = db.collection('job_descriptions');
+        if (o.status && o.status !== 'ALL') q = q.where('status', '==', o.status);
+        q = q.orderBy('createdAt', 'desc');
+        if (o.cursor) q = q.startAfter(o.cursor);
+        q = q.limit(pageSize);
+
+        return q.get()
             .then(function (snap) {
-                const out = [];
+                const items = [];
                 snap.forEach(function (doc) {
                     const d = doc.data() || {};
-                    out.push({
+                    items.push({
                         id: doc.id,
                         positionName: d.positionName || '',
                         department: d.department || '',
                         employeeName: d.employeeName || '',
                         status: d.status || '',
-                        createdAt: (d.createdAt && d.createdAt.toDate) ? d.createdAt.toDate() : null
+                        createdAt: d.createdAt?.toDate ? d.createdAt.toDate() : null
                     });
                 });
-                out.sort(function (a, b) {
-                    return (b.createdAt ? b.createdAt.getTime() : 0) - (a.createdAt ? a.createdAt.getTime() : 0);
-                });
-                return out;
+                return {
+                    items: items,
+                    cursor: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+                    hasMore: snap.docs.length === pageSize
+                };
             })
             .catch(function (err) {
                 console.error('JDConfig: failed to load job_descriptions', err);
-                return [];
+                return { items: [], cursor: null, hasMore: false };
             });
     }
+
+    // NOTE: there is deliberately no total-count helper here. Firestore's COUNT aggregation
+    // is modular-SDK only — the compat build this app uses does not expose it — and counting
+    // by reading the collection is exactly the cost this paging was added to avoid. The admin
+    // shows how many rows are currently loaded instead.
 
     // ---------- Datalist population (index.html) ----------
     function fillDatalist(datalistId, names) {
@@ -207,12 +284,10 @@ window.JDConfig = (function () {
     return {
         DEFAULTS: DEFAULTS,
         loadItems: loadItems,
-        addItem: addItem,
-        updateItem: updateItem,
-        deleteItem: deleteItem,
+        saveItems: saveItems,
         addMany: addMany,
-        setCache: setCache,
         clearCache: clearCache,
+        SUBS_PAGE_SIZE: SUBS_PAGE_SIZE,
         loadSubmissions: loadSubmissions,
         fillDatalist: fillDatalist,
         populateDatalists: populateDatalists

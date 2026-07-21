@@ -9,3 +9,11 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// Offline persistence (IndexedDB). Documents already fetched are served from the local
+// cache instead of costing another Firestore read on reload / back-navigation.
+// Fails harmlessly when several tabs are open (failed-precondition) or the browser has no
+// IndexedDB (unimplemented) — the app just falls back to network-only reads.
+db.enablePersistence({ synchronizeTabs: true }).catch(function (err) {
+  console.warn('Firestore offline persistence unavailable:', err.code);
+});
