@@ -24,6 +24,7 @@
 
     // status -> { label, css class, page to open }. Clicking a row goes to the page for its status.
     const STATUS = {
+        PENDING_EMPLOYEE:    { label: 'รอพนักงานลงนาม',    cls: 'gray',  page: 'sign.html' },
         APPLICANT_SUBMITTED: { label: 'รอผู้จัดการอนุมัติ', cls: 'amber', page: 'approval.html' },
         APPROVED:            { label: 'รอ HR ลงนาม',       cls: 'blue',  page: 'preview.html' },
         COMPLETED:           { label: 'เสร็จสิ้น',          cls: 'green', page: 'contract.html' }
@@ -337,10 +338,43 @@
             $a.append($meta);
 
             $('<span class="sub-arrow">›</span>').appendTo($a);
+
+            // Delete: nested in the row link, so the handler stops the click from
+            // navigating to the document page (see the .sub-del handler below).
+            $('<button class="sub-del no-print" title="ลบรายการนี้" aria-label="ลบรายการนี้">🗑</button>')
+                .attr('data-id', it.id)
+                .attr('data-name', it.positionName || '')
+                .appendTo($a);
+
             $list.append($a);
         });
 
         renderMoreBar($list);
+    }
+
+    // Permanently delete one submitted JD document, then drop it from the loaded
+    // page and re-render (no full reload needed).
+    function deleteSub(id, name) {
+        const label = name || '(ไม่ระบุตำแหน่ง)';
+        JDUI.confirm('ต้องการลบแบบฟอร์ม JD "' + label + '" ออกอย่างถาวรใช่หรือไม่?\nการลบไม่สามารถย้อนกลับได้', {
+            title: 'ยืนยันการลบเอกสาร',
+            okText: 'ลบถาวร',
+            danger: true,
+            variant: 'warning'
+        }).then(function (ok) {
+            if (!ok) return;
+            JDUI.loading.show('กำลังลบเอกสาร');
+            window.JDConfig.deleteSubmission(id).then(function () {
+                subs.all = subs.all.filter(function (i) { return i.id !== id; });
+                JDUI.loading.hide();
+                renderSubs();
+                JDUI.success('ลบเอกสาร "' + label + '" เรียบร้อยแล้ว', { title: 'ลบสำเร็จ' });
+            }).catch(function (err) {
+                JDUI.loading.hide();
+                console.error(err);
+                JDUI.error('ลบไม่สำเร็จ: ' + (err.message || 'กรุณาลองใหม่อีกครั้ง'), { title: 'ลบไม่สำเร็จ' });
+            });
+        });
     }
 
     // Footer under the list: "load more" while further pages exist, plus a note that the
@@ -394,6 +428,12 @@
         });
         $('.subsRefresh').on('click', loadSubs);
         $('#subsList').on('click', '.subsMore', loadMoreSubs);
+        // The delete button sits inside the row's link — block navigation.
+        $('#subsList').on('click', '.sub-del', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            deleteSub($(this).data('id'), $(this).data('name'));
+        });
 
         $('.addBtn').on('click', function () {
             addOne($(this).closest('.card').data('doc'));

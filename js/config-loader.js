@@ -255,6 +255,13 @@ window.JDConfig = (function () {
             });
     }
 
+    // Permanently delete one submitted JD document. Admin-only (enforced by the
+    // Firestore `allow delete: if isAdmin()` rule) — the admin page is the only
+    // caller. Resolves on success, rejects on failure so the UI can report it.
+    function deleteSubmission(id) {
+        return db.collection('job_descriptions').doc(id).delete();
+    }
+
     // NOTE: there is deliberately no total-count helper here. Firestore's COUNT aggregation
     // is modular-SDK only — the compat build this app uses does not expose it — and counting
     // by reading the collection is exactly the cost this paging was added to avoid. The admin
@@ -289,6 +296,7 @@ window.JDConfig = (function () {
         clearCache: clearCache,
         SUBS_PAGE_SIZE: SUBS_PAGE_SIZE,
         loadSubmissions: loadSubmissions,
+        deleteSubmission: deleteSubmission,
         fillDatalist: fillDatalist,
         populateDatalists: populateDatalists
     };

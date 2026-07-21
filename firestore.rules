@@ -21,14 +21,19 @@ service cloud.firestore {
     match /job_descriptions/{docId} {
 
       // The public requestor form may create a submission, but the document
-      // shape is validated: status must start at APPLICANT_SUBMITTED, only the
-      // known fields are allowed, and an access-code hash must be present.
-      allow create: if request.resource.data.status == 'APPLICANT_SUBMITTED'
+      // shape is validated: status must be one of the two allowed start states,
+      // only the known fields are allowed, and an access code must be present.
+      //   APPLICANT_SUBMITTED — normal flow, goes straight to the approver.
+      //   PENDING_EMPLOYEE    — employee-acknowledgement flow: one document per
+      //                         recipient, each waiting for that employee to sign
+      //                         before it is forwarded to the approver.
+      allow create: if request.resource.data.status in ['APPLICANT_SUBMITTED', 'PENDING_EMPLOYEE']
                     && request.resource.data.keys().hasOnly([
                          'positionName', 'department', 'location', 'level',
                          'education', 'experience', 'responsibilities',
                          'signatures', 'employeeName', 'startDate',
-                         'status', 'createdAt', 'accessCode'
+                         'status', 'createdAt', 'accessCode',
+                         'flow', 'recipientEmail', 'approverEmail'
                        ])
                     && request.resource.data.accessCode is string
                     && request.resource.data.accessCode.size() <= 64;
@@ -47,6 +52,23 @@ service cloud.firestore {
                         && request.resource.data.accessCode == resource.data.accessCode
                         && request.resource.data.positionName == resource.data.positionName
                         && request.resource.data.department == resource.data.department
+                        && request.resource.data.createdAt == resource.data.createdAt)
+                     // Employee acknowledgement (sign.html): the recipient of a
+                     // PENDING_EMPLOYEE document may add their own signature and
+                     // move it into the normal approver queue (APPLICANT_SUBMITTED).
+                     // Every JD content field is locked immutable, so the employee
+                     // can only touch their own signature / name / start date.
+                     || (resource.data.status == 'PENDING_EMPLOYEE'
+                        && request.resource.data.status == 'APPLICANT_SUBMITTED'
+                        && request.resource.data.accessCode == resource.data.accessCode
+                        && request.resource.data.positionName == resource.data.positionName
+                        && request.resource.data.department == resource.data.department
+                        && request.resource.data.location == resource.data.location
+                        && request.resource.data.level == resource.data.level
+                        && request.resource.data.responsibilities == resource.data.responsibilities
+                        && request.resource.data.education == resource.data.education
+                        && request.resource.data.experience == resource.data.experience
+                        && request.resource.data.approverEmail == resource.data.approverEmail
                         && request.resource.data.createdAt == resource.data.createdAt)
                      || isAdmin();
 

@@ -61,6 +61,21 @@ window.sendEmailToHR = function (previewUrl, requesterName = null, approved = fa
         });
 };
 
+// sendEmployeeAckEmail: sends the employee-acknowledgement flow email to ONE
+// employee, linking to their own sign.html document. Each recipient gets a
+// separate document + access code, so the link/code pair is per-employee.
+// Does NOT toggle the global loading overlay (the caller drives a batch loader
+// while sending to multiple employees).
+window.sendEmployeeAckEmail = function (signUrl, recipient, requesterName = null, accessCode = null) {
+    return sendViaGas({
+        to: recipient,
+        requester_name: requesterName || '',
+        review_url: signUrl,
+        access_code: accessCode || '',
+        subject: 'Kindly review and acknowledge the JD document| ' + (requesterName || '')
+    });
+};
+
 // sendApprovalEmail: sends to approver. Pass toEmail to override the default
 // recipient, and accessCode to include the per-document unlock code.
 window.sendApprovalEmail = function (previewUrl, requesterName = null, toEmail = null, accessCode = null) {

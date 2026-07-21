@@ -325,6 +325,22 @@
     <!-- Action bar (moved to bottom) -->
     <div class="no-print action-bar">
         <div class="action-card">
+            <!-- Flow selector: choose where the form goes after submit -->
+            <div class="field" id="sendModeField">
+                <label>ต้องการส่งเอกสารไปที่ใด? <span class="label-hint">(Submit To)</span></label>
+                <div class="send-mode-options">
+                    <label class="send-mode-item">
+                        <input type="radio" name="sendMode" value="approver" checked>
+                        ส่งแบบฟอร์มหาผู้อนุมัติ
+                    </label>
+                    <label class="send-mode-item">
+                        <input type="radio" name="sendMode" value="employee">
+                        ส่งพนักงานลงนามรับทราบ
+                    </label>
+                </div>
+            </div>
+
+            <!-- Approver email: always required (the employee flow forwards here too) -->
             <div class="field" id="approverEmailField">
                 <label for="approverEmail">อีเมลผู้อนุมัติ <span class="req">*</span>
                     <span class="label-hint">(Approver Email)</span></label>
@@ -334,6 +350,23 @@
                 </div>
                 <p class="field-error" id="approverEmailError"></p>
             </div>
+
+            <!-- Employee emails: only shown for the employee-acknowledgement flow.
+                 Each row becomes ONE separate document sent to that employee. -->
+            <div class="field" id="employeeEmailsField" style="display:none;">
+                <label>อีเมลพนักงานที่ต้องลงนาม <span class="req">*</span>
+                    <span class="label-hint">(Employee Emails — ระบุได้หลายคน)</span></label>
+                <div id="employeeEmailList">
+                    <div class="employee-email-row">
+                        <input type="email" class="employee-email-input" placeholder="employee1@company.com"
+                            autocomplete="off">
+                        <button type="button" class="btn-remove-email" title="ลบแถวนี้" aria-label="ลบ">✕</button>
+                    </div>
+                </div>
+                <button type="button" id="btnAddEmail" class="btn-add-email">+ เพิ่มอีเมลพนักงาน</button>
+                <p class="field-error" id="employeeEmailsError"></p>
+            </div>
+
             <div class="action-buttons">
                 <button class="btn-email" id="btnEmail">ส่งอีเมลหาผู้อนุมัติ</button>
                 <button class="btn-print" onclick="exportPDF()">บันทึกเป็น PDF</button>

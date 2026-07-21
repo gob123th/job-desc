@@ -91,6 +91,66 @@ $(document).ready(function () {
     // --- Realtime field validation (inline red border + message under field) ---
     const formValidator = setupFormValidation();
 
+    // --- Flow selector: toggle the employee-email UI + button label ---
+    function currentSendMode() {
+        return $('input[name="sendMode"]:checked').val() || 'approver';
+    }
+    function applySendMode() {
+        const mode = currentSendMode();
+        $('#employeeEmailsField').toggle(mode === 'employee');
+        $('#btnEmail').text(mode === 'employee' ? 'ส่งอีเมลให้พนักงานลงนาม' : 'ส่งอีเมลหาผู้อนุมัติ');
+    }
+    $('input[name="sendMode"]').on('change', applySendMode);
+    applySendMode();
+
+    // Add / remove employee email rows.
+    $('#btnAddEmail').on('click', function () {
+        const $row = $(
+            '<div class="employee-email-row">' +
+            '<input type="email" class="employee-email-input" placeholder="employee@company.com" autocomplete="off">' +
+            '<button type="button" class="btn-remove-email" title="ลบแถวนี้" aria-label="ลบ">✕</button>' +
+            '</div>'
+        );
+        $('#employeeEmailList').append($row);
+        $row.find('.employee-email-input').trigger('focus');
+    });
+    // Keep at least one row: clearing the last row just empties it.
+    $('#employeeEmailList').on('click', '.btn-remove-email', function () {
+        const $rows = $('#employeeEmailList .employee-email-row');
+        if ($rows.length > 1) {
+            $(this).closest('.employee-email-row').remove();
+        } else {
+            $(this).closest('.employee-email-row').find('.employee-email-input').val('');
+        }
+        $('#employeeEmailsError').text('');
+    });
+
+    // Collect + validate the employee email rows. Returns a de-duped array of
+    // valid addresses, or null (and shows an inline error) when invalid.
+    function collectEmployeeEmails() {
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const seen = {};
+        const emails = [];
+        let hasBad = false;
+        $('#employeeEmailList .employee-email-input').each(function () {
+            const v = ($(this).val() || '').trim();
+            if (!v) return;
+            if (!EMAIL_RE.test(v)) { hasBad = true; return; }
+            const key = v.toLowerCase();
+            if (!seen[key]) { seen[key] = true; emails.push(v); }
+        });
+        if (hasBad) {
+            $('#employeeEmailsError').text('มีอีเมลพนักงานที่รูปแบบไม่ถูกต้อง (เช่น example@company.com)');
+            return null;
+        }
+        if (!emails.length) {
+            $('#employeeEmailsError').text('กรุณากรอกอีเมลพนักงานอย่างน้อย 1 คน');
+            return null;
+        }
+        $('#employeeEmailsError').text('');
+        return emails;
+    }
+
     // --- Send Email ---
     $('#btnEmail').on('click', async function () {
         // Validate every field; reveal inline errors and jump to the first problem.
@@ -103,6 +163,15 @@ $(document).ready(function () {
 
         const approverEmail = ($('#approverEmail').val() || '').trim();
 
+        if (currentSendMode() === 'employee') {
+            await submitEmployeeFlow(approverEmail);
+        } else {
+            await submitApproverFlow(approverEmail);
+        }
+    });
+
+    // Flow 1 (unchanged): save one document and email the approver directly.
+    async function submitApproverFlow(approverEmail) {
         const confirmed = await JDUI.confirm('ระบบจะบันทึกข้อมูลและส่งอีเมลขออนุมัติไปยัง ' + approverEmail, {
             title: 'ยืนยันการส่งเอกสาร',
             okText: 'ส่งเลย'
@@ -118,24 +187,73 @@ $(document).ready(function () {
 
         // ===== Save to Firestore =====
         JDUI.loading.show('กำลังบันทึกข้อมูลเอกสาร');
-        db.collection("job_descriptions")
-            .add(formData)
-            .then(docRef => {
+        try {
+            const docRef = await db.collection("job_descriptions").add(formData);
+            JDUI.loading.hide();
+            const approvalUrl = 'approval.html?id=' + docRef.id;
+            sendApprovalEmail(approvalUrl, $('#SignName1').val() || 'ไม่ระบุชื่อผู้จัดทำ', approverEmail, accessCode);
+        } catch (err) {
+            JDUI.loading.hide();
+            JDUI.error('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง', { title: 'บันทึกไม่สำเร็จ' });
+            console.error(err);
+        }
+    }
 
-                JDUI.loading.hide();
-                const docId = docRef.id;
-                const approvalUrl = 'approval.html?id=' + docId;
+    // Flow 2: fan out to N separate documents — one per employee email — each with
+    // its own access code, then email each employee a link to sign.html. Keeping
+    // one document per recipient means employees can't see each other's document,
+    // and the approver email is stored on each so the employee's confirm button
+    // (in sign.js) knows where to forward it after signing.
+    async function submitEmployeeFlow(approverEmail) {
+        const emails = collectEmployeeEmails();
+        if (!emails) return;
 
-                sendApprovalEmail(approvalUrl, $('#employeeName').val() || 'ไม่ระบุชื่อผู้ขอ', approverEmail, accessCode);
+        const confirmed = await JDUI.confirm(
+            'ระบบจะสร้างเอกสารแยกสำหรับพนักงาน ' + emails.length + ' คน และส่งอีเมลให้แต่ละคนลงนามรับทราบ ' +
+            'เมื่อพนักงานลงนามแล้วระบบจะส่งต่อให้ผู้อนุมัติ (' + approverEmail + ')',
+            { title: 'ยืนยันการส่งให้พนักงานลงนาม', okText: 'ส่งเลย' }
+        );
+        if (!confirmed) return;
 
-            })
-            .catch(err => {
-                JDUI.loading.hide();
-                JDUI.error('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง', { title: 'บันทึกไม่สำเร็จ' });
-                console.error(err);
-            });
+        // Build a shared base once. Each employee fills their OWN acknowledgement,
+        // so clear any employee signature/name/date the requestor may have entered.
+        const base = collectFormData();
+        base.status = 'PENDING_EMPLOYEE';
+        base.flow = 'employee';
+        base.approverEmail = approverEmail;
+        base.signatures = Object.assign({}, base.signatures, { employee: null });
+        base.employeeName = null;
+        base.startDate = null;
 
-    });
+        const requesterName = $('#SignName1').val() || 'ไม่ระบุชื่อผู้จัดทำ';
+
+        JDUI.loading.show('กำลังสร้างเอกสารและส่งอีเมลให้พนักงาน');
+        const okList = [];
+        const failList = [];
+        for (const email of emails) {
+            const accessCode = window.JDAccess.generateCode(8);
+            const docData = Object.assign({}, base, { recipientEmail: email, accessCode: accessCode });
+            try {
+                const docRef = await db.collection('job_descriptions').add(docData);
+                const signUrl = 'sign.html?id=' + docRef.id;
+                await sendEmployeeAckEmail(signUrl, email, requesterName, accessCode);
+                okList.push(email);
+            } catch (err) {
+                console.error('Employee ack send failed for ' + email, err);
+                failList.push(email);
+            }
+        }
+        JDUI.loading.hide();
+
+        if (!failList.length) {
+            JDUI.success('ส่งอีเมลให้พนักงานลงนามเรียบร้อยแล้ว ' + okList.length + ' คน', { title: 'ส่งสำเร็จ' });
+        } else if (okList.length) {
+            JDUI.warning('ส่งสำเร็จ ' + okList.length + ' คน แต่ล้มเหลว ' + failList.length + ' คน: ' + failList.join(', '),
+                { title: 'ส่งบางส่วนไม่สำเร็จ' });
+        } else {
+            JDUI.error('ไม่สามารถส่งอีเมลให้พนักงานได้ กรุณาลองใหม่อีกครั้ง', { title: 'ส่งไม่สำเร็จ' });
+        }
+    }
 
     // --- Signature System Logic (Draw vs Upload) ---
     // Initialize for boxes 1, 2, 3, 4

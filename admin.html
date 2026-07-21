@@ -169,6 +169,10 @@
         .sub-date { font-size: 12px; color: var(--muted); }
         .sub-arrow { font-size: 24px; color: #c3ccdc; flex: 0 0 auto; transition: transform .15s, color .15s; }
         .sub-row:hover .sub-arrow { color: var(--brand-2); transform: translateX(3px); }
+        .sub-del { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
+            border: 1px solid #f0d0cc; background: #fef3f2; color: #d92d20; font-size: 15px; line-height: 1;
+            display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; }
+        .sub-del:hover { background: #fee4e2; border-color: #f0a9a3; }
 
         .badge { font-size: 12px; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
         .badge.amber { background: #fff4e0; color: #b7791f; }
@@ -300,6 +304,7 @@
                 </div>
                 <div class="status-filters">
                     <button class="chip active" data-status="ALL">ทั้งหมด</button>
+                    <button class="chip" data-status="PENDING_EMPLOYEE">🖊️ รอพนักงานลงนาม</button>
                     <button class="chip" data-status="APPLICANT_SUBMITTED">⏳ รอผู้จัดการอนุมัติ</button>
                     <button class="chip" data-status="APPROVED">✍️ รอ HR ลงนาม</button>
                     <button class="chip" data-status="COMPLETED">✅ เสร็จสิ้น</button>
