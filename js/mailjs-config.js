@@ -11,24 +11,75 @@ const MAILJS_CONFIG = {
 };
 window.MAILJS_CONFIG = MAILJS_CONFIG;
 
-// Low-level sender: POSTs to the GAS web app.
-// Uses text/plain to avoid a CORS preflight that GAS cannot answer.
-function sendViaGas(payload) {
-    if (!window.MAILJS_CONFIG || !MAILJS_CONFIG.webAppUrl) {
-        return Promise.reject(new Error('Mail web app not configured'));
-    }
+// Escape every non-ASCII character as a \uXXXX sequence so the request body is
+// pure ASCII. This is the fix for the mojibake ("Ã Â¸Â™...") in Thai subjects:
+// Apps Script does not reliably honour the charset of a text/plain POST body and
+// may decode our UTF-8 bytes as Latin-1. With an ASCII-only body there are no
+// multi-byte sequences left to misread, and JSON.parse() on the Apps Script side
+// restores the original Thai text regardless of which charset it assumed.
+function toAsciiJson(obj) {
+    return JSON.stringify(obj).replace(/[^\x00-\x7F]/g, function (ch) {
+        return '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0');
+    });
+}
+
+function delay(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+// One POST attempt. Resolves with the parsed response, or rejects with an error
+// carrying `retriable` — true only when the mail was certainly NOT sent
+// (network failure / 5xx), so a retry cannot produce a duplicate email.
+function postOnce(body) {
     return fetch(MAILJS_CONFIG.webAppUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(Object.assign({ token: MAILJS_CONFIG.token }, payload))
-    })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
+        body: body
+    }).then(function (res) {
+        return res.text().then(function (text) {
+            if (!res.ok) {
+                const err = new Error('Mail web app HTTP ' + res.status);
+                err.retriable = res.status >= 500;
+                throw err;
+            }
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                // GAS answered with HTML — almost always the sign-in page, i.e.
+                // the deployment is not shared as "Anyone". Retrying won't help.
+                throw new Error('Mail web app returned a non-JSON response (check that the deployment is accessible to "Anyone")');
+            }
             if (!data || !data.ok) {
                 throw new Error((data && data.error) || 'Mail send failed');
             }
             return data;
         });
+    }, function (netErr) {
+        netErr.retriable = true;
+        throw netErr;
+    });
+}
+
+// Low-level sender: POSTs to the GAS web app.
+// Uses text/plain to avoid a CORS preflight that GAS cannot answer.
+// Retries transient failures — a single GAS cold start or 5xx used to mean the
+// email was silently lost.
+function sendViaGas(payload) {
+    if (!window.MAILJS_CONFIG || !MAILJS_CONFIG.webAppUrl) {
+        return Promise.reject(new Error('Mail web app not configured'));
+    }
+    const body = toAsciiJson(Object.assign({ token: MAILJS_CONFIG.token }, payload));
+    const backoffMs = [800, 2500];
+
+    function attempt(i) {
+        return postOnce(body).catch(function (err) {
+            if (!err.retriable || i >= backoffMs.length) throw err;
+            console.warn('Mail send attempt ' + (i + 1) + ' failed, retrying', err);
+            return delay(backoffMs[i]).then(function () { return attempt(i + 1); });
+        });
+    }
+    return attempt(0);
 }
 
 // sendEmailToHR: available globally so both index and preview can call it.
