@@ -262,6 +262,22 @@ window.JDConfig = (function () {
         return db.collection('job_descriptions').doc(id).delete();
     }
 
+    // Read one full submission. loadSubmissions() only projects the few fields the
+    // list needs; resending an email needs the rest (accessCode, recipient, requester
+    // name), so the admin fetches the whole document on demand for that one row.
+    function getSubmission(id) {
+        return db.collection('job_descriptions').doc(id).get().then(function (doc) {
+            if (!doc.exists) throw new Error('ไม่พบเอกสารนี้แล้ว');
+            return Object.assign({ id: doc.id }, doc.data());
+        });
+    }
+
+    // Patch fields on one submission. Admin-only (the `isAdmin()` branch of the
+    // update rule); used to backfill a missing approverEmail when resending.
+    function updateSubmission(id, patch) {
+        return db.collection('job_descriptions').doc(id).update(patch);
+    }
+
     // NOTE: there is deliberately no total-count helper here. Firestore's COUNT aggregation
     // is modular-SDK only — the compat build this app uses does not expose it — and counting
     // by reading the collection is exactly the cost this paging was added to avoid. The admin
@@ -296,6 +312,8 @@ window.JDConfig = (function () {
         clearCache: clearCache,
         SUBS_PAGE_SIZE: SUBS_PAGE_SIZE,
         loadSubmissions: loadSubmissions,
+        getSubmission: getSubmission,
+        updateSubmission: updateSubmission,
         deleteSubmission: deleteSubmission,
         fillDatalist: fillDatalist,
         populateDatalists: populateDatalists

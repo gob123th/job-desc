@@ -13,6 +13,8 @@
     <script src="js/firebase-config.js"></script>
     <script src="js/ui-dialog.js"></script>
     <script src="js/config-loader.js"></script>
+    <!-- Needed by the per-row "resend email" button in the submissions list. -->
+    <script src="js/mailjs-config.js"></script>
 
     <style>
         /* TH Sarabun PSK — bundled (this page does not load css/style.css). */
@@ -173,6 +175,10 @@
             border: 1px solid #f0d0cc; background: #fef3f2; color: #d92d20; font-size: 15px; line-height: 1;
             display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; }
         .sub-del:hover { background: #fee4e2; border-color: #f0a9a3; }
+        .sub-resend { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
+            border: 1px solid #cfe0f7; background: #eff6ff; color: #2563c9; font-size: 15px; line-height: 1;
+            display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; }
+        .sub-resend:hover { background: #dbeafe; border-color: #9dc2f0; }
 
         .badge { font-size: 12px; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
         .badge.amber { background: #fff4e0; color: #b7791f; }

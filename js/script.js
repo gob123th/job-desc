@@ -184,6 +184,9 @@ $(document).ready(function () {
         // capability-based) and emailed with the link so each step can unlock.
         const accessCode = window.JDAccess.generateCode(8);
         formData.accessCode = accessCode;
+        // Stored so the admin console can resend the approval email later without
+        // having to ask who the approver was.
+        formData.approverEmail = approverEmail;
 
         // ===== Save to Firestore =====
         JDUI.loading.show('กำลังบันทึกข้อมูลเอกสาร');

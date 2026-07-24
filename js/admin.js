@@ -33,6 +33,16 @@
         return STATUS[s] || { label: s || 'ไม่ทราบสถานะ', cls: 'gray', page: 'preview.html' };
     }
 
+    // Which email is still outstanding for a document, per status — this is what the
+    // per-row resend button re-sends. `emailField` is the document field holding the
+    // recipient; null means the recipient is the fixed HR address in MAILJS_CONFIG.
+    // COMPLETED is absent on purpose: a finished document has no pending email.
+    const RESEND = {
+        PENDING_EMPLOYEE:    { page: 'sign.html',     emailField: 'recipientEmail', who: 'พนักงานผู้ลงนามรับทราบ' },
+        APPLICANT_SUBMITTED: { page: 'approval.html', emailField: 'approverEmail',  who: 'ผู้อนุมัติ' },
+        APPROVED:            { page: 'preview.html',  emailField: null,             who: 'ฝ่าย HR' }
+    };
+
     // ---------- Auth ----------
     function showAdmin() {
         $('#loginScreen').hide();
@@ -339,8 +349,18 @@
 
             $('<span class="sub-arrow">›</span>').appendTo($a);
 
-            // Delete: nested in the row link, so the handler stops the click from
-            // navigating to the document page (see the .sub-del handler below).
+            // Resend + delete are nested in the row link, so their handlers stop the
+            // click from navigating to the document page (see the handlers below).
+            // A COMPLETED document has no pending email, so it gets no resend button.
+            if (RESEND[it.status]) {
+                $('<button class="sub-resend no-print">✉</button>')
+                    .attr('title', 'ส่งอีเมลซ้ำไปยัง' + RESEND[it.status].who)
+                    .attr('aria-label', 'ส่งอีเมลซ้ำ')
+                    .attr('data-id', it.id)
+                    .attr('data-name', it.positionName || '')
+                    .appendTo($a);
+            }
+
             $('<button class="sub-del no-print" title="ลบรายการนี้" aria-label="ลบรายการนี้">🗑</button>')
                 .attr('data-id', it.id)
                 .attr('data-name', it.positionName || '')
@@ -350,6 +370,102 @@
         });
 
         renderMoreBar($list);
+    }
+
+    // ---------- Resend the pending email for one document ----------
+    function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v || ''); }
+
+    // Ask for the recipient when the document doesn't carry one. Documents created
+    // before the approver email was stored on the doc land here; whatever the admin
+    // types is written back, so the next resend needs no prompt.
+    function askRecipient(doc, meta) {
+        return JDUI.prompt('ไม่พบอีเมล' + meta.who + 'ในเอกสารนี้ กรุณากรอกอีเมลปลายทาง', {
+            title: 'ระบุอีเมลปลายทาง',
+            placeholder: 'name@company.com'
+        }).then(function (input) {
+            const email = (input || '').trim();
+            if (!email) return null;                       // cancelled
+            if (!isEmail(email)) {
+                JDUI.error('รูปแบบอีเมลไม่ถูกต้อง', { title: 'อีเมลไม่ถูกต้อง' });
+                return null;
+            }
+            if (!meta.emailField) return email;
+            const patch = {};
+            patch[meta.emailField] = email;
+            return window.JDConfig.updateSubmission(doc.id, patch)
+                .catch(function (err) { console.warn('Could not store recipient on the document', err); })
+                .then(function () { return email; });
+        });
+    }
+
+    // Dispatch to the mail helper that matches the status. Each helper drives its own
+    // loading overlay and result dialog, except sendEmployeeAckEmail (built for batch
+    // sending), so that one gets the overlay and dialogs here.
+    function sendFor(status, url, doc, recipient) {
+        const requester = (doc.signatures && doc.signatures.requestedByName) || 'ไม่ระบุชื่อผู้จัดทำ';
+        const code = doc.accessCode || '';
+
+        if (status === 'APPLICANT_SUBMITTED') {
+            return window.sendApprovalEmail(url, requester, recipient, code);
+        }
+        if (status === 'APPROVED') {
+            return window.sendEmailToHR(url, doc.employeeName || requester, true, code);
+        }
+        JDUI.loading.show('กำลังส่งอีเมลให้พนักงานอีกครั้ง');
+        return window.sendEmployeeAckEmail(url, recipient, requester, code)
+            .then(function (res) {
+                JDUI.loading.hide();
+                JDUI.success('ส่งอีเมลซ้ำไปยัง ' + recipient + ' เรียบร้อยแล้ว', { title: 'ส่งอีเมลสำเร็จ' });
+                return res;
+            })
+            .catch(function (err) {
+                JDUI.loading.hide();
+                JDUI.error('ส่งอีเมลไม่สำเร็จ: ' + (err.message || 'กรุณาลองใหม่อีกครั้ง'), { title: 'ส่งอีเมลไม่สำเร็จ' });
+                throw err;
+            });
+    }
+
+    // Re-send the email the document is currently waiting on, to the same recipient
+    // and with the same access code — nothing about the document changes, so this is
+    // safe to press more than once.
+    async function resendSub(id, name) {
+        const label = name || '(ไม่ระบุตำแหน่ง)';
+        let doc;
+        try {
+            JDUI.loading.show('กำลังอ่านข้อมูลเอกสาร');
+            doc = await window.JDConfig.getSubmission(id);
+            JDUI.loading.hide();
+        } catch (err) {
+            JDUI.loading.hide();
+            console.error(err);
+            JDUI.error(err.message || 'อ่านข้อมูลเอกสารไม่สำเร็จ', { title: 'ส่งอีเมลซ้ำไม่สำเร็จ' });
+            return;
+        }
+
+        const meta = RESEND[doc.status];
+        if (!meta) {
+            JDUI.info('เอกสาร "' + label + '" เสร็จสมบูรณ์แล้ว จึงไม่มีอีเมลที่ต้องส่งซ้ำ', { title: 'ไม่มีอีเมลค้างส่ง' });
+            return;
+        }
+
+        let recipient = meta.emailField ? (doc[meta.emailField] || '').trim() : MAILJS_CONFIG.defaultTo;
+        if (!recipient) {
+            recipient = await askRecipient(doc, meta);
+            if (!recipient) return;
+        }
+
+        const confirmed = await JDUI.confirm(
+            'ส่งอีเมลสำหรับ "' + label + '" ซ้ำไปยัง' + meta.who + ' (' + recipient + ') ใช่หรือไม่?\n' +
+            'ลิงก์และรหัสเข้าใช้งานเดิมจะถูกส่งไปอีกครั้ง ผู้รับอาจได้รับอีเมลซ้ำกัน',
+            { title: 'ยืนยันการส่งอีเมลซ้ำ', okText: 'ส่งซ้ำ' }
+        );
+        if (!confirmed) return;
+
+        try {
+            await sendFor(doc.status, meta.page + '?id=' + doc.id, doc, recipient);
+        } catch (err) {
+            console.error('Resend failed', err);   // sendFor already told the user
+        }
     }
 
     // Permanently delete one submitted JD document, then drop it from the loaded
@@ -428,7 +544,12 @@
         });
         $('.subsRefresh').on('click', loadSubs);
         $('#subsList').on('click', '.subsMore', loadMoreSubs);
-        // The delete button sits inside the row's link — block navigation.
+        // The resend/delete buttons sit inside the row's link — block navigation.
+        $('#subsList').on('click', '.sub-resend', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            resendSub($(this).data('id'), $(this).data('name'));
+        });
         $('#subsList').on('click', '.sub-del', function (e) {
             e.preventDefault();
             e.stopPropagation();
