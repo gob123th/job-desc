@@ -856,11 +856,11 @@
             ));
 
             if (it.message) $('<div class="log-msg"></div>').text(it.message).appendTo($body);
-            if (it.jdId) {
-                $('<div class="log-msg"></div>')
-                    .text('เอกสาร: ' + it.jdId + ' • หน้า: ' + (it.page || '—'))
-                    .appendTo($body);
-            }
+
+            // The page is always worth showing: for an uncaught error it is often
+            // the only clue about where the failure happened.
+            const where = (it.jdId ? 'เอกสาร: ' + it.jdId + ' • ' : '') + 'หน้า: ' + (it.page || '—');
+            $('<div class="log-msg"></div>').text(where).appendTo($body);
 
             $list.append($row);
         });

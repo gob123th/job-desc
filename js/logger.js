@@ -112,11 +112,19 @@ window.JDLog = (function () {
         // file) so a hard JS error still leaves a trace an admin can read.
         installGlobalHandlers: function () {
             window.addEventListener('error', function (e) {
+                // "Script error." with no filename is the browser censoring an error
+                // thrown by a cross-origin script. The CDN <script> tags carry
+                // crossorigin="anonymous" so the real message comes through; if this
+                // still appears, a script is being served without CORS headers and
+                // the details are simply not available to us.
+                const censored = e.message === 'Script error.' && !e.filename;
                 write({
                     level: 'error',
                     service: 'app',
-                    action: 'uncaught',
-                    message: (e.message || 'error') + ' @ ' + (e.filename || '') + ':' + (e.lineno || 0)
+                    action: censored ? 'uncaught:cross-origin' : 'uncaught',
+                    message: censored
+                        ? 'เบราว์เซอร์ปิดบังรายละเอียด (error จากสคริปต์ข้ามโดเมนที่ไม่ได้ตั้ง CORS) — ดูข้อความจริงได้ใน DevTools Console'
+                        : (e.message || 'error') + ' @ ' + (e.filename || '') + ':' + (e.lineno || 0)
                 });
             });
             window.addEventListener('unhandledrejection', function (e) {
