@@ -332,6 +332,12 @@ function initSignatureBox(id) {
     const uploadInputId = '#uploadSig' + id;
     const previewId = '#previewSig' + id;
 
+    // Not every page carries all four signature boxes — approval.html only has the
+    // approver's (sig3). script.js runs on those pages too and initialises 1..4, so
+    // without this guard the missing canvas threw a TypeError that aborted the rest
+    // of the ready handler. Nothing after the failing box got wired up.
+    if (!document.querySelector(canvasId)) return;
+
     // Toggle Draw / Upload mode
     $(boxId + ' input[type=radio]').on('change', function () {
         var mode = $(this).val();

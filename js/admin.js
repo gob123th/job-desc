@@ -866,8 +866,39 @@
         });
     }
 
-    // Housekeeping so the collection does not grow without bound. Deletes only what
-    // is currently loaded and older than the cut-off, so it is safe to press twice.
+    // Housekeeping so the collection does not grow without bound.
+    //
+    // Firestore has no "delete by query" — documents go one at a time, batched.
+    // A batch caps at 500 writes, so 400 leaves margin, and several batches run in
+    // sequence until the query comes back empty. MAX_ROUNDS stops a runaway loop
+    // from silently eating the daily free-tier delete allowance; whatever is left
+    // is picked up the next time the button is pressed.
+    const DELETE_CHUNK = 400;
+    const MAX_ROUNDS = 12;   // up to 4,800 rows per press
+
+    async function deleteLogsBy(buildQuery, progressLabel) {
+        let total = 0;
+        for (let round = 0; round < MAX_ROUNDS; round++) {
+            const snap = await buildQuery().limit(DELETE_CHUNK).get();
+            if (snap.empty) return { total: total, done: true };
+
+            const batch = db.batch();
+            snap.docs.forEach(function (d) { batch.delete(d.ref); });
+            await batch.commit();
+
+            total += snap.size;
+            JDUI.loading.setText(progressLabel + ' (' + total + ' รายการ)');
+
+            if (snap.size < DELETE_CHUNK) return { total: total, done: true };
+        }
+        return { total: total, done: false };   // hit the round cap, more remains
+    }
+
+    function reportDeleted(result, title) {
+        JDUI.success('ลบแล้ว ' + result.total + ' รายการ' +
+            (result.done ? '' : ' — ยังมีเหลืออยู่ กดซ้ำได้อีกครั้ง'), { title: title });
+    }
+
     async function purgeLogs() {
         const days = 30;
         const confirmed = await JDUI.confirm('ลบ log ที่เก่ากว่า ' + days + ' วันทั้งหมด?', {
@@ -878,20 +909,43 @@
         const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
         JDUI.loading.show('กำลังลบ log เก่า');
         try {
-            const snap = await db.collection('app_logs').where('ts', '<', cutoff).limit(400).get();
-            // Firestore caps a batch at 500 writes; 400 keeps a margin and the button
-            // can simply be pressed again for a larger backlog.
-            const batch = db.batch();
-            snap.docs.forEach(function (d) { batch.delete(d.ref); });
-            await batch.commit();
+            const result = await deleteLogsBy(function () {
+                return db.collection('app_logs').where('ts', '<', cutoff);
+            }, 'กำลังลบ log เก่า');
             JDUI.loading.hide();
-            JDUI.success('ลบ log เก่าแล้ว ' + snap.size + ' รายการ' +
-                (snap.size === 400 ? ' (ยังมีเหลือ กดซ้ำได้อีก)' : ''), { title: 'ล้าง log เรียบร้อย' });
+            reportDeleted(result, 'ล้าง log เก่าเรียบร้อย');
             loadLogs();
         } catch (err) {
             JDUI.loading.hide();
             console.error(err);
             JDUI.error('ลบ log ไม่สำเร็จ', { title: 'เกิดข้อผิดพลาด' });
+        }
+    }
+
+    // Wipe the whole log. Destructive and irreversible (the rules make app_logs
+    // append-only, so there is no history to fall back on) — hence the extra
+    // warning wording rather than the same one-line confirm as the 30-day purge.
+    async function clearAllLogs() {
+        const confirmed = await JDUI.confirm(
+            'ลบ log ทั้งหมดออกอย่างถาวร รวมถึงรายการของวันนี้ด้วย\n' +
+            'การลบไม่สามารถย้อนกลับได้ และจะทำให้ตรวจสอบปัญหาย้อนหลังไม่ได้อีก\n\n' +
+            'ต้องการดำเนินการต่อหรือไม่?',
+            { title: 'ล้าง log ทั้งหมด', okText: 'ลบทั้งหมด' }
+        );
+        if (!confirmed) return;
+
+        JDUI.loading.show('กำลังล้าง log ทั้งหมด');
+        try {
+            const result = await deleteLogsBy(function () {
+                return db.collection('app_logs');
+            }, 'กำลังล้าง log ทั้งหมด');
+            JDUI.loading.hide();
+            reportDeleted(result, 'ล้าง log เรียบร้อย');
+            loadLogs();
+        } catch (err) {
+            JDUI.loading.hide();
+            console.error(err);
+            JDUI.error('ล้าง log ไม่สำเร็จ', { title: 'เกิดข้อผิดพลาด' });
         }
     }
 
@@ -968,6 +1022,7 @@
         // System log
         $('#logRefresh').on('click', loadLogs);
         $('#logPurgeBtn').on('click', purgeLogs);
+        $('#logClearBtn').on('click', clearAllLogs);
         $('#logSearch').on('input', function () { logs.q = this.value.trim().toLowerCase(); renderLogs(); });
         $('.lchip').on('click', function () {
             $('.lchip').removeClass('active');
