@@ -149,9 +149,14 @@ $(document).ready(async function () {
                 const approvalUrl = 'approval.html?id=' + docId;
                 const requesterName = sigs.requestedByName || 'ไม่ระบุชื่อผู้จัดทำ';
                 if (data.approverEmail && window.sendApprovalEmail) {
-                    // sendApprovalEmail drives its own loading + success/error dialog.
+                    // sendApprovalEmail drives its own loading + success/error dialog,
+                    // including the "saved, goes out the next day" wording when the
+                    // daily send cap has been reached.
                     sendApprovalEmail(approvalUrl, requesterName, data.approverEmail, data.accessCode)
-                        .catch(function () { console.warn('Approval email send failed'); });
+                        .catch(function (err) {
+                            console.warn('Approval email send failed', err);
+                            JDLog.error('mail', 'approvalFromSign', err, { jdId: docId });
+                        });
                 } else {
                     JDUI.success('บันทึกลายเซ็นเรียบร้อยแล้ว', { title: 'ลงนามสำเร็จ' });
                 }

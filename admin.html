@@ -11,6 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="js/firebase-config.js"></script>
+    <script src="js/logger.js"></script>
     <script src="js/ui-dialog.js"></script>
     <script src="js/config-loader.js"></script>
     <!-- Needed by the per-row "resend email" button in the submissions list. -->
@@ -66,7 +67,7 @@
         /* ============ Buttons ============ */
         .btn {
             border: none; border-radius: 10px; padding: 11px 18px;
-            font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+            font-family: inherit; font-size: 19px; font-weight: 600; cursor: pointer;
             transition: transform .08s, box-shadow .15s, background .15s, opacity .15s;
             white-space: nowrap;
         }
@@ -76,12 +77,12 @@
         .btn-primary:hover:not(:disabled) { box-shadow: 0 8px 22px rgba(47, 128, 237, .45); }
         .btn-ghost { background: rgba(255, 255, 255, .15); color: #fff; border: 1px solid rgba(255, 255, 255, .35); }
         .btn-ghost:hover { background: rgba(255, 255, 255, .28); }
-        .btn-sm { padding: 8px 14px; font-size: 13px; }
+        .btn-sm { padding: 8px 14px; font-size: 18px; }
 
         .icon-btn {
             border: none; background: transparent; color: var(--muted);
             width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
-            font-size: 14px; line-height: 1; transition: background .15s, color .15s; flex: 0 0 auto;
+            font-size: 19px; line-height: 1; transition: background .15s, color .15s; flex: 0 0 auto;
         }
         .icon-btn.del:hover { background: #fdecec; color: var(--danger); }
 
@@ -95,22 +96,22 @@
         .login-card.shake { animation: shake .45s; }
         .brand-badge {
             width: 58px; height: 58px; margin: 0 auto 16px; border-radius: 16px;
-            display: flex; align-items: center; justify-content: center; font-size: 26px; color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 31px; color: #fff;
             background: linear-gradient(135deg, var(--brand-2), var(--indigo));
             box-shadow: 0 8px 20px rgba(79, 70, 229, .4);
         }
-        .login-card h1 { font-size: 21px; margin: 0; text-align: center; }
-        .login-card .sub { text-align: center; color: var(--muted); font-size: 13px; margin: 4px 0 26px; }
+        .login-card h1 { font-size: 26px; margin: 0; text-align: center; }
+        .login-card .sub { text-align: center; color: var(--muted); font-size: 18px; margin: 4px 0 26px; }
 
         .field { margin-bottom: 16px; }
-        .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #475063; }
+        .field label { display: block; font-size: 18px; font-weight: 600; margin-bottom: 6px; color: #475063; }
         .input {
             width: 100%; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 11px;
-            font-size: 15px; background: #fbfcfe; transition: border-color .15s, box-shadow .15s, background .15s;
+            font-size: 20px; background: #fbfcfe; transition: border-color .15s, box-shadow .15s, background .15s;
         }
         .input:focus { outline: none; border-color: var(--brand-2); background: #fff; box-shadow: 0 0 0 4px rgba(47, 128, 237, .14); }
         #loginForm .btn-primary { width: 100%; margin-top: 6px; padding: 13px; }
-        #loginError { color: var(--danger); font-size: 13px; margin-top: 12px; text-align: center; min-height: 18px; font-weight: 500; }
+        #loginError { color: var(--danger); font-size: 18px; margin-top: 12px; text-align: center; min-height: 18px; font-weight: 500; }
 
         /* ============ Shell ============ */
         #adminScreen { display: none; }
@@ -119,9 +120,9 @@
         .topbar { position: sticky; top: 0; z-index: 10; background: linear-gradient(135deg, var(--brand), var(--indigo)); color: #fff; box-shadow: 0 6px 20px rgba(31, 39, 51, .18); }
         .topbar-inner { max-width: 1080px; margin: 0 auto; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
         .topbar .title { display: flex; align-items: center; gap: 12px; }
-        .topbar .title .logo { width: 40px; height: 40px; border-radius: 11px; background: rgba(255, 255, 255, .18); display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
-        .topbar .title small { display: block; font-size: 12px; opacity: .85; font-weight: 400; }
+        .topbar .title .logo { width: 40px; height: 40px; border-radius: 11px; background: rgba(255, 255, 255, .18); display: flex; align-items: center; justify-content: center; font-size: 25px; }
+        .topbar h1 { font-size: 23px; margin: 0; font-weight: 700; }
+        .topbar .title small { display: block; font-size: 17px; opacity: .85; font-weight: 400; }
         .topbar .actions { display: flex; gap: 10px; }
 
         .wrap { max-width: 1080px; margin: 0 auto; padding: 22px 24px 60px; }
@@ -130,7 +131,7 @@
         .tabs { display: flex; gap: 6px; margin-bottom: 22px; background: #fff; padding: 6px; border-radius: 12px; box-shadow: var(--shadow-sm); width: fit-content; }
         .tab {
             border: none; background: transparent; cursor: pointer; font-family: inherit;
-            font-size: 14px; font-weight: 600; color: var(--muted); padding: 10px 18px; border-radius: 9px;
+            font-size: 19px; font-weight: 600; color: var(--muted); padding: 10px 18px; border-radius: 9px;
             transition: background .15s, color .15s; display: flex; align-items: center; gap: 7px;
         }
         .tab:hover { color: var(--ink); }
@@ -142,14 +143,14 @@
         /* ============ Submissions ============ */
         .subs-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
         .search-wrap { position: relative; flex: 1; min-width: 200px; }
-        .search-wrap::before { content: "🔍"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; opacity: .55; }
-        .searchInput, .subsSearch { width: 100%; padding: 11px 12px 11px 34px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 14px; background: #fff; }
+        .search-wrap::before { content: "🔍"; position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 18px; opacity: .55; }
+        .searchInput, .subsSearch { width: 100%; padding: 11px 12px 11px 34px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 19px; background: #fff; }
         .searchInput:focus, .subsSearch:focus { outline: none; border-color: var(--brand-2); box-shadow: 0 0 0 3px rgba(47, 128, 237, .12); }
 
         .status-filters { display: flex; gap: 8px; flex-wrap: wrap; }
         .chip {
             border: 1.5px solid var(--line); background: #fff; color: var(--muted); cursor: pointer;
-            font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 999px;
+            font-family: inherit; font-size: 18px; font-weight: 600; padding: 8px 14px; border-radius: 999px;
             transition: all .15s; display: flex; align-items: center; gap: 6px;
         }
         .chip:hover { border-color: #c3ccdc; }
@@ -164,23 +165,23 @@
         .sub-row:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(20, 40, 80, .12); border-color: #d8e2f4; }
         .sub-accent { width: 4px; align-self: stretch; border-radius: 4px; flex: 0 0 auto; }
         .sub-main { flex: 1; min-width: 0; }
-        .sub-pos { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sub-pos { font-size: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .sub-pos .muted-pos { color: var(--muted); font-weight: 500; font-style: italic; }
-        .sub-sub { font-size: 13px; color: var(--muted); margin-top: 3px; display: flex; gap: 14px; flex-wrap: wrap; }
+        .sub-sub { font-size: 18px; color: var(--muted); margin-top: 3px; display: flex; gap: 14px; flex-wrap: wrap; }
         .sub-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: 0 0 auto; }
-        .sub-date { font-size: 12px; color: var(--muted); }
-        .sub-arrow { font-size: 24px; color: #c3ccdc; flex: 0 0 auto; transition: transform .15s, color .15s; }
+        .sub-date { font-size: 17px; color: var(--muted); }
+        .sub-arrow { font-size: 29px; color: #c3ccdc; flex: 0 0 auto; transition: transform .15s, color .15s; }
         .sub-row:hover .sub-arrow { color: var(--brand-2); transform: translateX(3px); }
         .sub-del { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
-            border: 1px solid #f0d0cc; background: #fef3f2; color: #d92d20; font-size: 15px; line-height: 1;
+            border: 1px solid #f0d0cc; background: #fef3f2; color: #d92d20; font-size: 20px; line-height: 1;
             display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; }
         .sub-del:hover { background: #fee4e2; border-color: #f0a9a3; }
         .sub-resend { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
-            border: 1px solid #cfe0f7; background: #eff6ff; color: #2563c9; font-size: 15px; line-height: 1;
+            border: 1px solid #cfe0f7; background: #eff6ff; color: #2563c9; font-size: 20px; line-height: 1;
             display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; }
         .sub-resend:hover { background: #dbeafe; border-color: #9dc2f0; }
 
-        .badge { font-size: 12px; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+        .badge { font-size: 17px; font-weight: 700; padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
         .badge.amber { background: #fff4e0; color: #b7791f; }
         .badge.blue  { background: #e7f0ff; color: #2563c9; }
         .badge.green { background: #e3f6ec; color: #1f9d55; }
@@ -191,57 +192,115 @@
         .sub-row.gray  .sub-accent { background: #aab4c6; }
 
         .subs-empty, .subs-loading { text-align: center; color: var(--muted); padding: 50px 20px; background: #fff; border-radius: 12px; box-shadow: var(--shadow-sm); }
-        .subs-empty .big { font-size: 40px; opacity: .6; margin-bottom: 10px; }
+        .subs-empty .big { font-size: 45px; opacity: .6; margin-bottom: 10px; }
         .subs-loading .bar { height: 64px; border-radius: 12px; background: #eef1f7; margin-bottom: 10px; animation: pulse 1.1s ease-in-out infinite; }
 
         /* Paging footer: the list loads one page at a time to keep Firestore reads low. */
         .subs-more { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 10px 4px; }
         .subs-more .subsMore { background: #fff; color: var(--brand); border-color: var(--line); }
-        .subs-more-note { font-size: 12px; color: var(--muted); text-align: center; }
+        .subs-more-note { font-size: 17px; color: var(--muted); text-align: center; }
 
         /* ============ Config cards ============ */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-        @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } .tabs { width: 100%; } .tab { flex: 1; justify-content: center; } }
+        /* ── Gmail daily-cap badge in the top bar ── */
+        .quota-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 999px; font-size: 18px; font-weight: 600;
+            background: rgba(255, 255, 255, .16); color: #fff; white-space: nowrap;
+        }
+        .quota-badge.low { background: #f5a524; color: #3a2a00; }
+        .quota-badge.empty { background: var(--danger); color: #fff; }
+
+        .tab-count {
+            display: none; min-width: 20px; padding: 1px 7px; border-radius: 999px;
+            background: var(--danger); color: #fff; font-size: 16px; font-weight: 700;
+        }
+        .tab-count.show { display: inline-block; }
+
+        #queueSearch, #logSearch { width: 100%; padding: 11px 12px 11px 34px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 19px; background: #fff; }
+
+        /* ── Mail queue rows ── */
+        .q-row {
+            display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+            background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px;
+        }
+        .q-row .q-main { flex: 1; min-width: 0; }
+        .q-row .q-to { font-weight: 600; font-size: 19px; color: var(--ink); word-break: break-all; }
+        .q-row .q-meta { font-size: 17px; color: var(--muted); margin-top: 3px; }
+        .q-row .q-err { font-size: 17px; color: var(--danger); margin-top: 3px; overflow-wrap: anywhere; }
+        .q-badge { font-size: 16px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+        .q-badge.pending { background: #fff4e0; color: #a15c00; }
+        .q-badge.sent { background: #e6f6ec; color: #1a7f42; }
+        .q-badge.failed { background: #fdecec; color: var(--danger); }
+        .q-badge.kind { background: #eef2fb; color: var(--brand); }
+
+        /* ── System log rows ── */
+        .log-row {
+            display: flex; gap: 12px; padding: 11px 16px; background: #fff;
+            border: 1px solid var(--line); border-radius: 12px; margin-bottom: 6px;
+            border-left-width: 4px; font-size: 18px;
+        }
+        .log-row.error { border-left-color: var(--danger); }
+        .log-row.warn { border-left-color: #f5a524; }
+        .log-row.info { border-left-color: var(--line); }
+        .log-row .log-time { color: var(--muted); font-size: 17px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .log-row .log-body { flex: 1; min-width: 0; }
+        .log-row .log-head { font-weight: 600; color: var(--ink); }
+        .log-row .log-msg { color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+        .log-tag { font-size: 16px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #eef2fb; color: var(--brand); margin-right: 6px; }
+        .empty-note { padding: 28px; text-align: center; color: var(--muted); background: #fff; border: 1px dashed var(--line); border-radius: 12px; }
+
+        /* ── Hourly trigger heartbeat ── */
+        .mailer-status {
+            padding: 12px 16px; border-radius: 12px; margin-bottom: 14px; font-size: 18px;
+            background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--line); color: var(--muted);
+        }
+        .mailer-status.good { border-left-color: var(--ok); color: #22543d; background: #f2fbf5; }
+        .mailer-status.stale { border-left-color: #f5a524; color: #7a4b00; background: #fffaf0; }
+        .mailer-status.bad { border-left-color: var(--danger); color: #8a1c1f; background: #fdf3f3; }
+        .mailer-status b { font-weight: 700; }
+
+        @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } .tabs { width: 100%; } .tab { flex: 1; justify-content: center; } .q-row { flex-wrap: wrap; } }
 
         .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-sm); border: 1px solid #eef1f6; display: flex; flex-direction: column; overflow: hidden; animation: rise .35s ease both; }
         .card:nth-child(2) { animation-delay: .07s; }
         .card-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--line); }
-        .card-head .ico { width: 38px; height: 38px; border-radius: 10px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #fff; }
+        .card-head .ico { width: 38px; height: 38px; border-radius: 10px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; font-size: 23px; color: #fff; }
         .card[data-doc="departments"] .ico { background: linear-gradient(135deg, #2f80ed, #1c63c4); }
         .card[data-doc="positions"] .ico { background: linear-gradient(135deg, #7c5cff, #4f46e5); }
-        .card-head h2 { font-size: 16px; margin: 0; font-weight: 700; }
-        .card-head .desc { font-size: 12px; color: var(--muted); margin-top: 1px; }
-        .card-head .count-badge { margin-left: auto; background: #eef2fb; color: var(--brand); font-weight: 700; font-size: 13px; padding: 4px 12px; border-radius: 999px; }
+        .card-head h2 { font-size: 21px; margin: 0; font-weight: 700; }
+        .card-head .desc { font-size: 17px; color: var(--muted); margin-top: 1px; }
+        .card-head .count-badge { margin-left: auto; background: #eef2fb; color: var(--brand); font-weight: 700; font-size: 18px; padding: 4px 12px; border-radius: 999px; }
         .card-body { padding: 16px 20px 20px; }
 
         .add-row { display: flex; gap: 10px; margin-bottom: 12px; }
-        .add-row .addInput { flex: 1; padding: 11px 14px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 14px; background: #fbfcfe; }
+        .add-row .addInput { flex: 1; padding: 11px 14px; border: 1.5px solid var(--line); border-radius: 10px; font-size: 19px; background: #fbfcfe; }
         .add-row .addInput:focus { outline: none; border-color: var(--brand-2); background: #fff; box-shadow: 0 0 0 3px rgba(47,128,237,.12); }
         .toolbar { margin-bottom: 12px; }
 
         .list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow-y: auto; }
         .list li { display: flex; align-items: center; gap: 10px; padding: 6px 4px 6px 0; border-bottom: 1px solid #f1f3f8; animation: fade .25s ease; }
         .list li:last-child { border-bottom: none; }
-        .list .num { flex: 0 0 auto; width: 26px; text-align: center; font-size: 12px; color: var(--muted); font-weight: 600; }
-        .list .name { flex: 1; border: 1.5px solid transparent; border-radius: 8px; padding: 8px 10px; font-size: 14px; background: transparent; color: var(--ink); transition: border-color .15s, background .15s; }
+        .list .num { flex: 0 0 auto; width: 26px; text-align: center; font-size: 17px; color: var(--muted); font-weight: 600; }
+        .list .name { flex: 1; border: 1.5px solid transparent; border-radius: 8px; padding: 8px 10px; font-size: 19px; background: transparent; color: var(--ink); transition: border-color .15s, background .15s; }
         .list .name:hover { background: #f7f9fc; }
         .list .name:focus { outline: none; border-color: var(--brand-2); background: #fff; box-shadow: 0 0 0 3px rgba(47,128,237,.10); }
         .list .empty { color: var(--muted); font-style: italic; padding: 22px 6px; justify-content: center; }
         .list .empty-state { flex-direction: column; gap: 12px; font-style: normal; text-align: center; padding: 30px 6px; }
-        .empty-state .empty-ico { font-size: 34px; opacity: .7; }
+        .empty-state .empty-ico { font-size: 39px; opacity: .7; }
         .empty-state .seedCardBtn { margin-top: 4px; }
 
         .card.loading .list { position: relative; min-height: 120px; }
         .card.loading .list::after { content: ""; position: absolute; inset: 8px 0; background: repeating-linear-gradient(#eef1f7 0 14px, transparent 14px 26px); border-radius: 8px; animation: pulse 1.1s ease-in-out infinite; }
 
         .card-foot { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-top: 1px solid var(--line); background: #fbfcff; }
-        .foot-hint { font-size: 12px; color: var(--muted); }
-        .saveState { font-size: 13px; min-height: 18px; font-weight: 500; margin-left: auto; }
+        .foot-hint { font-size: 17px; color: var(--muted); }
+        .saveState { font-size: 18px; min-height: 18px; font-weight: 500; margin-left: auto; }
         .saveState.ok { color: var(--ok); }
         .saveState.err { color: var(--danger); }
         .saveState.dirty { color: var(--warn); }
 
-        .footnote { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.7; margin-top: 22px; }
+        .footnote { font-size: 17px; color: var(--muted); text-align: center; line-height: 1.7; margin-top: 22px; }
 
         /* ============ Animations ============ */
         @keyframes pop { from { opacity: 0; transform: scale(.96) translateY(8px); } to { opacity: 1; transform: none; } }
@@ -287,6 +346,10 @@
                     </div>
                 </div>
                 <div class="actions">
+                    <!-- Gmail's daily send cap is the one hard limit in this system and
+                         Google exposes no UI for it, so the only place it can be seen is
+                         here. Filled in by admin.js on load. -->
+                    <span id="quotaBadge" class="quota-badge" title="จำนวนอีเมลที่ยังส่งได้ในวันนี้">อีเมลคงเหลือวันนี้: …</span>
                     <a href="index.html?print=blank" target="_blank" rel="noopener"
                         class="btn btn-ghost btn-sm" style="text-decoration:none; display:inline-flex; align-items:center;">🖨️ พิมพ์ฟอร์มเปล่า</a>
                     <button id="logoutBtn" class="btn btn-ghost btn-sm">ออกจากระบบ</button>
@@ -298,6 +361,8 @@
             <div class="tabs">
                 <button class="tab active" data-tab="forms">📋 รายการฟอร์ม JD</button>
                 <button class="tab" data-tab="config">⚙️ จัดการแผนก / ตำแหน่ง</button>
+                <button class="tab" data-tab="queue">✉️ คิวอีเมล <span id="queueCount" class="tab-count"></span></button>
+                <button class="tab" data-tab="logs">📜 Log ระบบ</button>
             </div>
 
             <!-- ===== Tab: submitted forms ===== -->
@@ -366,6 +431,57 @@
                 <p class="footnote">
                     แต่ละแผนก/ตำแหน่งถูกเก็บเป็น 1 เอกสารใน Firestore (collection <b>departments</b> และ <b>positions</b>)<br>
                     ทุกการเพิ่ม แก้ไข หรือลบ จะบันทึกทันที — แบบฟอร์ม JD จะดึงรายการล่าสุดทุกครั้งที่เปิดหน้า
+                </p>
+            </div>
+
+            <!-- ===== Tab: mail queue ===== -->
+            <!-- Emails that could not go out because the Gmail account hit its daily
+                 cap. An hourly Apps Script trigger drains this on its own; the button
+                 here is for when someone does not want to wait for the next hour. -->
+            <div class="tab-panel" id="tab-queue">
+                <!-- Heartbeat from the hourly Apps Script trigger. A timestamp that
+                     stops advancing is the only way to notice the trigger died. -->
+                <div id="mailerStatus" class="mailer-status">กำลังตรวจสอบตัวส่งอัตโนมัติ…</div>
+                <div class="subs-toolbar">
+                    <div class="search-wrap">
+                        <input type="text" id="queueSearch" placeholder="ค้นหา อีเมลปลายทาง / หัวเรื่อง...">
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="queueDrainBtn">▶ ส่งคิวตอนนี้</button>
+                    <button class="btn btn-ghost btn-sm" id="queueRefresh" style="background:#fff;color:var(--brand);border-color:var(--line);">↻ รีเฟรช</button>
+                </div>
+                <div class="status-filters">
+                    <button class="chip qchip active" data-qstatus="PENDING">⏳ รอส่ง</button>
+                    <button class="chip qchip" data-qstatus="FAILED">⚠️ ส่งไม่สำเร็จ</button>
+                    <button class="chip qchip" data-qstatus="SENT">✅ ส่งแล้ว</button>
+                    <button class="chip qchip" data-qstatus="ALL">ทั้งหมด</button>
+                </div>
+                <div class="subs-list" id="queueList" style="margin-top:16px;"></div>
+                <p class="footnote">
+                    ระบบจะส่งคิวอัตโนมัติทุกชั่วโมงเท่าที่โควตาเหลือ โดยส่งอีเมลถึงพนักงานก่อนเสมอ<br>
+                    เอกสารทั้งหมดถูกบันทึกไว้เรียบร้อยแล้ว — คิวนี้เป็นเพียงการแจ้งเตือนทางอีเมลที่ยังค้างอยู่
+                </p>
+            </div>
+
+            <!-- ===== Tab: system log ===== -->
+            <div class="tab-panel" id="tab-logs">
+                <div class="subs-toolbar">
+                    <div class="search-wrap">
+                        <input type="text" id="logSearch" placeholder="ค้นหา ข้อความ / action / เลขเอกสาร...">
+                    </div>
+                    <button class="btn btn-ghost btn-sm" id="logRefresh" style="background:#fff;color:var(--brand);border-color:var(--line);">↻ รีเฟรช</button>
+                    <button class="btn btn-ghost btn-sm" id="logPurgeBtn" style="background:#fff;color:var(--danger);border-color:var(--line);">🗑 ลบ log เก่ากว่า 30 วัน</button>
+                </div>
+                <div class="status-filters">
+                    <button class="chip lchip active" data-level="ALL">ทั้งหมด</button>
+                    <button class="chip lchip" data-level="error">🔴 Error</button>
+                    <button class="chip lchip" data-level="warn">🟡 Warning</button>
+                    <button class="chip lchip" data-level="info">⚪ Info</button>
+                </div>
+                <div class="log-list" id="logList" style="margin-top:16px;"></div>
+                <p class="footnote">
+                    บันทึกทุกครั้งที่ระบบติดต่อบริการภายนอก — ส่งอีเมล (mail), บันทึกข้อมูล (firestore),
+                    ตัวช่วยเขียน JD (ai) และข้อผิดพลาดที่ไม่ถูกดักจับ (app)<br>
+                    แสดง 200 รายการล่าสุด
                 </p>
             </div>
         </div>

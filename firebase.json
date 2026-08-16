@@ -4,6 +4,7 @@
     "public": ".",
     "ignore": [
       "firebase.json",
+      "apps-script/**",
       ".firebaserc",
       "firestore.rules",
       "firestore.indexes.json",

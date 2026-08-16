@@ -95,6 +95,68 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ───────────────────────── Mail queue ─────────────────────────
+    // Emails that could not be sent immediately because the Gmail account hit its
+    // daily cap. The website appends to this queue; an hourly Apps Script trigger
+    // drains it. That trigger authenticates with a service account, which bypasses
+    // these rules entirely — so nothing here needs to grant a browser read access,
+    // and the queue (which stores per-document access codes) stays admin-only.
+    match /mail_queue/{docId} {
+      // Anyone who can submit the public form may enqueue, because the person
+      // filling in a JD is not signed in. The shape is pinned down so the
+      // collection cannot be used as free storage.
+      allow create: if request.resource.data.status == 'PENDING'
+                    && request.resource.data.attempts == 0
+                    && request.resource.data.keys().hasOnly([
+                         'to', 'subject', 'requesterName', 'reviewUrl', 'accessCode',
+                         'kind', 'priority', 'jdId',
+                         'status', 'attempts', 'lastError', 'lastCode',
+                         'createdAt', 'updatedAt', 'sentAt'
+                       ])
+                    && request.resource.data.to is string
+                    && request.resource.data.to.size() <= 200
+                    && request.resource.data.subject is string
+                    && request.resource.data.subject.size() <= 300
+                    && request.resource.data.kind in ['employee_ack', 'approval', 'hr']
+                    && request.resource.data.priority is int
+                    && request.resource.data.priority >= 1
+                    && request.resource.data.priority <= 9;
+
+      // Reading the queue exposes recipient addresses and access codes together,
+      // so it is admin-only. Retrying / clearing entries from admin.html is an
+      // update, and the Apps Script drainer does not go through these rules.
+      allow get, list, update, delete: if isAdmin();
+    }
+
+    // ───────────────────────── System log ─────────────────────────
+    // Error / event log written by js/logger.js and read by the admin console.
+    match /app_logs/{docId} {
+      // Public create is unavoidable: the people who hit these errors are the
+      // (unauthenticated) requestors and employees filling in the form, and a log
+      // that only records admin sessions would miss every failure worth seeing.
+      // The trade-off is that the collection is writable by anyone who reads the
+      // public JS — same exposure the rest of this app already has — so the shape
+      // and the field sizes are capped here to bound the damage.
+      allow create: if request.resource.data.keys().hasOnly([
+                         'ts', 'level', 'service', 'action',
+                         'ok', 'code', 'message', 'jdId', 'page'
+                       ])
+                    && request.resource.data.level in ['info', 'warn', 'error']
+                    // NOTE: "service" is a reserved word in this language, so the
+                    // field has to be reached with [] rather than a dot.
+                    && request.resource.data['service'] is string
+                    && request.resource.data['service'].size() <= 30
+                    && request.resource.data.action is string
+                    && request.resource.data.action.size() <= 80
+                    && request.resource.data.message is string
+                    && request.resource.data.message.size() <= 600
+                    && request.resource.data.ts == request.time;
+
+      // Logs are append-only: not even an admin edits history.
+      allow get, list, delete: if isAdmin();
+      allow update: if false;
+    }
+
     // Everything else is denied.
     match /{document=**} {
       allow read, write: if false;

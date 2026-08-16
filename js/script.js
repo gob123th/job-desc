@@ -199,6 +199,7 @@ $(document).ready(function () {
             JDUI.loading.hide();
             JDUI.error('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง', { title: 'บันทึกไม่สำเร็จ' });
             console.error(err);
+            JDLog.error('firestore', 'createSubmission', err);
         }
     }
 
@@ -231,31 +232,78 @@ $(document).ready(function () {
         const requesterName = $('#SignName1').val() || 'ไม่ระบุชื่อผู้จัดทำ';
 
         JDUI.loading.show('กำลังสร้างเอกสารและส่งอีเมลให้พนักงาน');
-        const okList = [];
+
+        // How many emails can still go out today. -1 means the figure is unknown
+        // (the mailer did not answer), in which case we just try and let each send
+        // fall into the queue on its own — never treat "unknown" as "none left".
+        const quota = await JDMail.getQuota();
+        let budget = quota < 0 ? emails.length : quota;
+
+        const sentList = [];
+        const queuedList = [];
         const failList = [];
+
         for (const email of emails) {
             const accessCode = window.JDAccess.generateCode(8);
             const docData = Object.assign({}, base, { recipientEmail: email, accessCode: accessCode });
+
+            // The document is created first and always: it is the thing the person
+            // spent time filling in. An email that cannot go out now is queued, so
+            // no work is ever lost because of the daily cap.
+            let docRef;
             try {
-                const docRef = await db.collection('job_descriptions').add(docData);
-                const signUrl = 'sign.html?id=' + docRef.id;
-                await sendEmployeeAckEmail(signUrl, email, requesterName, accessCode);
-                okList.push(email);
+                docRef = await db.collection('job_descriptions').add(docData);
             } catch (err) {
+                console.error('Could not create document for ' + email, err);
+                JDLog.error('firestore', 'createEmployeeDoc', err, { message: email });
+                failList.push(email);
+                continue;
+            }
+
+            const signUrl = 'sign.html?id=' + docRef.id;
+            try {
+                // Once the cap is reached, stop attempting: queue the rest directly
+                // instead of paying for a doomed round trip per recipient.
+                const result = await sendEmployeeAckEmail(
+                    signUrl, email, requesterName, accessCode,
+                    budget > 0 ? null : { forceQueue: true }
+                );
+                if (result.status === 'sent') {
+                    sentList.push(email);
+                    budget--;
+                } else {
+                    queuedList.push(email);
+                    budget = 0; // the cap is reached — queue everyone after this one
+                }
+            } catch (err) {
+                // Only a malformed address reaches here; everything else is queued.
                 console.error('Employee ack send failed for ' + email, err);
                 failList.push(email);
             }
         }
-        JDUI.loading.hide();
 
-        if (!failList.length) {
-            JDUI.success('ส่งอีเมลให้พนักงานลงนามเรียบร้อยแล้ว ' + okList.length + ' คน', { title: 'ส่งสำเร็จ' });
-        } else if (okList.length) {
-            JDUI.warning('ส่งสำเร็จ ' + okList.length + ' คน แต่ล้มเหลว ' + failList.length + ' คน: ' + failList.join(', '),
-                { title: 'ส่งบางส่วนไม่สำเร็จ' });
-        } else {
-            JDUI.error('ไม่สามารถส่งอีเมลให้พนักงานได้ กรุณาลองใหม่อีกครั้ง', { title: 'ส่งไม่สำเร็จ' });
+        JDUI.loading.hide();
+        reportEmployeeBatch(sentList, queuedList, failList);
+    }
+
+    // One summary for the whole batch. The wording never mentions quotas: from the
+    // requestor's side nothing failed — the documents are saved and the remaining
+    // emails go out the next day on their own.
+    function reportEmployeeBatch(sent, queued, failed) {
+        const lines = [];
+        if (sent.length) lines.push('ส่งอีเมลให้พนักงานแล้ว ' + sent.length + ' คน');
+        if (queued.length) lines.push('อีก ' + queued.length + ' คนบันทึกเอกสารไว้เรียบร้อยแล้ว ระบบจะส่งอีเมลให้ในวันถัดไปโดยอัตโนมัติ ไม่ต้องกรอกใหม่');
+
+        if (failed.length) {
+            lines.push('มี ' + failed.length + ' คนที่ดำเนินการไม่สำเร็จ กรุณาตรวจสอบอีเมล: ' + failed.join(', '));
+            JDUI.warning(lines.join('\n\n'), { title: 'ดำเนินการเสร็จสิ้นบางส่วน' });
+            return;
         }
+        if (queued.length) {
+            JDUI.success(lines.join('\n\n'), { title: 'บันทึกเรียบร้อย' });
+            return;
+        }
+        JDUI.success(lines.join('\n\n'), { title: 'ส่งสำเร็จ' });
     }
 
     // --- Signature System Logic (Draw vs Upload) ---

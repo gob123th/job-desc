@@ -49,6 +49,8 @@
         $('#adminScreen').addClass('show');
         loadAll();
         loadSubs();
+        refreshQuota();      // the only place the Gmail daily cap is visible
+        refreshQueueCount(); // surfaces a backlog without opening the queue tab
     }
 
     function showLogin(msg) {
@@ -520,24 +522,405 @@
         $list.append($bar);
     }
 
+    // ═══════════════ Gmail daily-cap badge ═══════════════
+    // Google exposes no UI for this number, so the admin console is the only place
+    // it can be seen. -1 means the mailer did not answer — say so rather than
+    // showing a number that would be wrong.
+    function refreshQuota() {
+        const $b = $('#quotaBadge');
+        $b.removeClass('low empty').text('อีเมลคงเหลือวันนี้: …');
+
+        return window.JDMail.getQuota().then(function (n) {
+            if (n < 0) {
+                $b.text('ตรวจสอบโควตาอีเมลไม่ได้');
+                return n;
+            }
+            $b.text('อีเมลคงเหลือวันนี้: ' + n);
+            if (n === 0) $b.addClass('empty');
+            else if (n <= 20) $b.addClass('low');
+            return n;
+        });
+    }
+
+    // ═══════════════ Mail queue ═══════════════
+
+    const queue = { all: [], filter: 'PENDING', q: '', loading: false };
+
+    const QSTATUS = {
+        PENDING: { label: 'รอส่ง', cls: 'pending' },
+        SENT:    { label: 'ส่งแล้ว', cls: 'sent' },
+        FAILED:  { label: 'ส่งไม่สำเร็จ', cls: 'failed' }
+    };
+    const QKIND = {
+        employee_ack: 'พนักงานลงนาม',
+        approval:     'ผู้อนุมัติ',
+        hr:           'ฝ่าย HR'
+    };
+
+    function fmtTime(ts) {
+        const d = ts?.toDate ? ts.toDate() : null;
+        if (!d) return '—';
+        return d.toLocaleString('th-TH', {
+            day: '2-digit', month: 'short', year: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
+
+    // Sorted client-side rather than with orderBy so the query stays a single
+    // equality filter, which Firestore serves from its automatic index — no
+    // composite index to create and keep in sync.
+    function loadQueue() {
+        if (queue.loading) return Promise.resolve();
+        queue.loading = true;
+        $('#queueList').html('<div class="empty-note">กำลังโหลด…</div>');
+
+        let ref = db.collection('mail_queue');
+        if (queue.filter !== 'ALL') ref = ref.where('status', '==', queue.filter);
+
+        return ref.limit(300).get()
+            .then(function (snap) {
+                queue.all = snap.docs.map(function (d) {
+                    return Object.assign({ id: d.id }, d.data());
+                });
+                queue.all.sort(function (a, b) {
+                    const p = (a.priority || 5) - (b.priority || 5);
+                    if (p !== 0) return p;
+                    return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
+                });
+                renderQueue();
+                refreshQueueCount();
+            })
+            .catch(function (err) {
+                console.error(err);
+                JDLog.error('firestore', 'loadQueue', err);
+                $('#queueList').html('<div class="empty-note">โหลดคิวไม่สำเร็จ</div>');
+            })
+            .finally(function () { queue.loading = false; });
+    }
+
+    // Badge on the tab so a backlog is visible without opening the tab.
+    function refreshQueueCount() {
+        return db.collection('mail_queue').where('status', '==', 'PENDING').limit(300).get()
+            .then(function (snap) {
+                const $c = $('#queueCount');
+                if (snap.size) $c.text(snap.size).addClass('show');
+                else $c.text('').removeClass('show');
+            })
+            .catch(function () { /* the badge is cosmetic — never block on it */ });
+    }
+
+    function renderQueue() {
+        const $list = $('#queueList').empty();
+        const rows = queue.all.filter(function (it) {
+            if (!queue.q) return true;
+            return (it.to + ' ' + (it.subject || '') + ' ' + (it.requesterName || ''))
+                .toLowerCase().includes(queue.q);
+        });
+
+        if (!rows.length) {
+            $list.html('<div class="empty-note">ไม่มีรายการในคิว</div>');
+            return;
+        }
+
+        rows.forEach(function (it) {
+            const st = QSTATUS[it.status] || { label: it.status, cls: 'pending' };
+            const $row = $('<div class="q-row"></div>');
+            const $main = $('<div class="q-main"></div>').appendTo($row);
+
+            $('<div class="q-to"></div>').text(it.to || '—').appendTo($main);
+            $('<div class="q-meta"></div>')
+                .text('เข้าคิวเมื่อ ' + fmtTime(it.createdAt) +
+                      (it.attempts ? ' • พยายามส่งแล้ว ' + it.attempts + ' ครั้ง' : '') +
+                      (it.status === 'SENT' ? ' • ส่งเมื่อ ' + fmtTime(it.sentAt) : ''))
+                .appendTo($main);
+            if (it.status === 'FAILED' && it.lastError) {
+                $('<div class="q-err"></div>').text(it.lastError).appendTo($main);
+            }
+
+            $('<span class="q-badge kind"></span>').text(QKIND[it.kind] || it.kind).appendTo($row);
+            $('<span class="q-badge ' + st.cls + '"></span>').text(st.label).appendTo($row);
+
+            if (it.status !== 'SENT') {
+                $('<button class="icon-btn q-send" title="ส่งรายการนี้ตอนนี้">▶</button>')
+                    .attr('data-id', it.id).appendTo($row);
+            }
+            $('<button class="icon-btn del q-del" title="ลบออกจากคิว">🗑</button>')
+                .attr('data-id', it.id).appendTo($row);
+
+            $list.append($row);
+        });
+    }
+
+    // Send one queued message and fold the outcome back into its own row. Never
+    // enqueues again — the row already exists.
+    function sendQueued(item) {
+        return window.JDMail.sendNow({
+            to: item.to,
+            requester_name: item.requesterName,
+            review_url: item.reviewUrl,
+            access_code: item.accessCode,
+            subject: item.subject
+        }).then(function () {
+            return db.collection('mail_queue').doc(item.id).update({
+                status: 'SENT',
+                sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastError: '',
+                lastCode: ''
+            }).then(function () { return { ok: true }; });
+        }, function (err) {
+            // The daily cap is not this message's fault — leave it PENDING and do
+            // not count an attempt against it, otherwise a busy day would burn
+            // through MAX attempts and mark good addresses as permanently failed.
+            if (err.code === 'QUOTA_EXCEEDED') return { ok: false, quota: true, err: err };
+
+            const attempts = (item.attempts || 0) + 1;
+            return db.collection('mail_queue').doc(item.id).update({
+                status: attempts >= 5 ? 'FAILED' : 'PENDING',
+                attempts: attempts,
+                lastError: String(err.message || err).slice(0, 500),
+                lastCode: err.code || 'SEND_FAILED',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(function () { return { ok: false, err: err }; });
+        });
+    }
+
+    // Drain as much of the backlog as today's remaining quota allows. The hourly
+    // Apps Script trigger does the same thing on its own — this is for when nobody
+    // wants to wait for the next hour.
+    async function drainQueueNow() {
+        const pending = queue.all.filter(function (it) { return it.status === 'PENDING'; });
+        if (!pending.length) {
+            JDUI.info('ไม่มีอีเมลค้างส่งในคิว', { title: 'คิวว่าง' });
+            return;
+        }
+
+        const quota = await refreshQuota();
+        if (quota === 0) {
+            JDUI.warning('โควตาอีเมลของวันนี้เต็มแล้ว ระบบจะส่งคิวที่เหลือให้อัตโนมัติเมื่อโควตากลับมา',
+                { title: 'ส่งตอนนี้ไม่ได้' });
+            return;
+        }
+
+        const confirmed = await JDUI.confirm(
+            'มีอีเมลค้างส่ง ' + pending.length + ' ฉบับ และวันนี้ยังส่งได้อีก ' +
+            (quota < 0 ? 'ไม่ทราบจำนวน' : quota + ' ฉบับ') + '\nเริ่มส่งเลยหรือไม่?',
+            { title: 'ส่งคิวตอนนี้', okText: 'ส่งเลย' }
+        );
+        if (!confirmed) return;
+
+        let budget = quota < 0 ? pending.length : quota;
+        let sent = 0, failed = 0, stoppedByQuota = false;
+
+        JDUI.loading.show('กำลังส่งอีเมลในคิว');
+        for (const item of pending) {
+            if (budget <= 0) { stoppedByQuota = true; break; }
+            const r = await sendQueued(item);
+            if (r.ok) { sent++; budget--; }
+            else if (r.quota) { stoppedByQuota = true; break; }
+            else failed++;
+        }
+        JDUI.loading.hide();
+
+        await loadQueue();
+        await refreshQuota();
+
+        let msg = 'ส่งสำเร็จ ' + sent + ' ฉบับ';
+        if (failed) msg += ' • ส่งไม่สำเร็จ ' + failed + ' ฉบับ (ดูรายละเอียดในรายการ)';
+        if (stoppedByQuota) msg += '\n\nโควตาของวันนี้หมดแล้ว ส่วนที่เหลือระบบจะส่งให้อัตโนมัติในวันถัดไป';
+
+        if (failed) JDUI.warning(msg, { title: 'ส่งคิวเสร็จสิ้นบางส่วน' });
+        else JDUI.success(msg, { title: 'ส่งคิวเรียบร้อย' });
+    }
+
+    function deleteQueueItem(id) {
+        JDUI.confirm('ลบรายการนี้ออกจากคิว? อีเมลฉบับนี้จะไม่ถูกส่งอีก', {
+            title: 'ยืนยันการลบ', okText: 'ลบ'
+        }).then(function (ok) {
+            if (!ok) return;
+            return db.collection('mail_queue').doc(id).delete().then(loadQueue);
+        }).catch(function (err) {
+            console.error(err);
+            JDUI.error('ลบไม่สำเร็จ', { title: 'เกิดข้อผิดพลาด' });
+        });
+    }
+
+    // ═══════════════ Hourly trigger heartbeat ═══════════════
+    //
+    // The Apps Script trigger runs on Google's servers with no visibility from
+    // here, so it stamps app_config/mailer_status on every run. What matters is not
+    // what the last run did but WHEN it was: a timestamp older than ~2 hours means
+    // the trigger was never installed, was deleted, or is failing to run at all.
+    const MAILER_STALE_MS = 2 * 60 * 60 * 1000;
+
+    function loadMailerStatus() {
+        const $el = $('#mailerStatus');
+
+        return db.collection('app_config').doc('mailer_status').get()
+            .then(function (doc) {
+                $el.removeClass('good stale bad');
+
+                if (!doc.exists) {
+                    $el.addClass('bad').html(
+                        '<b>⚠️ ตัวส่งอัตโนมัติยังไม่เคยทำงาน</b><br>' +
+                        'ยังไม่ได้ติดตั้ง trigger ใน Apps Script (กด Run ฟังก์ชัน <b>createHourlyTrigger</b> หนึ่งครั้ง) ' +
+                        'ระหว่างนี้คิวจะถูกส่งเมื่อกดปุ่ม “ส่งคิวตอนนี้” เท่านั้น'
+                    );
+                    return;
+                }
+
+                const d = doc.data();
+                const last = d.lastRunAt?.toDate ? d.lastRunAt.toDate() : null;
+                if (!last) {
+                    $el.addClass('bad').text('⚠️ ไม่พบเวลาทำงานล่าสุดของตัวส่งอัตโนมัติ');
+                    return;
+                }
+
+                const ageMs = Date.now() - last.getTime();
+                const mins = Math.round(ageMs / 60000);
+                const ago = mins < 60 ? mins + ' นาทีที่แล้ว' : Math.round(mins / 60) + ' ชั่วโมงที่แล้ว';
+                const detail = 'ทำงานล่าสุด ' + fmtTime(d.lastRunAt) + ' (' + ago + ')' +
+                               (d.lastNote ? '<br>' + escapeText(d.lastNote) : '');
+
+                if (ageMs > MAILER_STALE_MS) {
+                    $el.addClass('stale').html(
+                        '<b>⚠️ ตัวส่งอัตโนมัติไม่ได้ทำงานมานาน</b><br>' + detail +
+                        '<br>ควรตรวจสอบที่ Apps Script → Executions'
+                    );
+                } else if (d.lastOk === false) {
+                    $el.addClass('bad').html('<b>⚠️ ตัวส่งอัตโนมัติทำงานแต่มีข้อผิดพลาด</b><br>' + detail);
+                } else {
+                    $el.addClass('good').html('<b>✅ ตัวส่งอัตโนมัติทำงานปกติ</b><br>' + detail);
+                }
+            })
+            .catch(function (err) {
+                console.error(err);
+                $el.removeClass('good stale bad').text('ตรวจสอบสถานะตัวส่งอัตโนมัติไม่ได้');
+            });
+    }
+
+    // The status line is built with .html() so it can carry <br> and <b>; anything
+    // coming from the Apps Script side goes through here first.
+    function escapeText(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ═══════════════ System log ═══════════════
+
+    const logs = { all: [], level: 'ALL', q: '', loading: false };
+    const LOG_LIMIT = 200;
+
+    function loadLogs() {
+        if (logs.loading) return Promise.resolve();
+        logs.loading = true;
+        $('#logList').html('<div class="empty-note">กำลังโหลด…</div>');
+
+        // One orderBy on a single field — served by the automatic index.
+        return db.collection('app_logs').orderBy('ts', 'desc').limit(LOG_LIMIT).get()
+            .then(function (snap) {
+                logs.all = snap.docs.map(function (d) {
+                    return Object.assign({ id: d.id }, d.data());
+                });
+                renderLogs();
+            })
+            .catch(function (err) {
+                console.error(err);
+                $('#logList').html('<div class="empty-note">โหลด log ไม่สำเร็จ</div>');
+            })
+            .finally(function () { logs.loading = false; });
+    }
+
+    function renderLogs() {
+        const $list = $('#logList').empty();
+        const rows = logs.all.filter(function (it) {
+            if (logs.level !== 'ALL' && it.level !== logs.level) return false;
+            if (!logs.q) return true;
+            return ((it.message || '') + ' ' + (it.action || '') + ' ' + (it.jdId || '') + ' ' + (it.service || ''))
+                .toLowerCase().includes(logs.q);
+        });
+
+        if (!rows.length) {
+            $list.html('<div class="empty-note">ไม่มีรายการ</div>');
+            return;
+        }
+
+        rows.forEach(function (it) {
+            const $row = $('<div class="log-row ' + (it.level || 'info') + '"></div>');
+            $('<div class="log-time"></div>').text(fmtTime(it.ts)).appendTo($row);
+
+            const $body = $('<div class="log-body"></div>').appendTo($row);
+            const $head = $('<div class="log-head"></div>').appendTo($body);
+            $('<span class="log-tag"></span>').text(it.service || 'app').appendTo($head);
+            $head.append(document.createTextNode(
+                (it.action || '') + (it.code ? ' • ' + it.code : '')
+            ));
+
+            if (it.message) $('<div class="log-msg"></div>').text(it.message).appendTo($body);
+            if (it.jdId) {
+                $('<div class="log-msg"></div>')
+                    .text('เอกสาร: ' + it.jdId + ' • หน้า: ' + (it.page || '—'))
+                    .appendTo($body);
+            }
+
+            $list.append($row);
+        });
+    }
+
+    // Housekeeping so the collection does not grow without bound. Deletes only what
+    // is currently loaded and older than the cut-off, so it is safe to press twice.
+    async function purgeLogs() {
+        const days = 30;
+        const confirmed = await JDUI.confirm('ลบ log ที่เก่ากว่า ' + days + ' วันทั้งหมด?', {
+            title: 'ล้าง log เก่า', okText: 'ลบ'
+        });
+        if (!confirmed) return;
+
+        const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+        JDUI.loading.show('กำลังลบ log เก่า');
+        try {
+            const snap = await db.collection('app_logs').where('ts', '<', cutoff).limit(400).get();
+            // Firestore caps a batch at 500 writes; 400 keeps a margin and the button
+            // can simply be pressed again for a larger backlog.
+            const batch = db.batch();
+            snap.docs.forEach(function (d) { batch.delete(d.ref); });
+            await batch.commit();
+            JDUI.loading.hide();
+            JDUI.success('ลบ log เก่าแล้ว ' + snap.size + ' รายการ' +
+                (snap.size === 400 ? ' (ยังมีเหลือ กดซ้ำได้อีก)' : ''), { title: 'ล้าง log เรียบร้อย' });
+            loadLogs();
+        } catch (err) {
+            JDUI.loading.hide();
+            console.error(err);
+            JDUI.error('ลบ log ไม่สำเร็จ', { title: 'เกิดข้อผิดพลาด' });
+        }
+    }
+
     // ---------- Wire up ----------
     $(document).ready(function () {
         $('#loginForm').on('submit', handleLogin);
         $('#logoutBtn').on('click', logout);
 
-        // Tabs
+        // Tabs. The queue and log tabs load lazily — no reason to read those
+        // collections for an admin who only came to edit the department list.
         $('.tab').on('click', function () {
             const t = $(this).data('tab');
             $('.tab').removeClass('active');
             $(this).addClass('active');
             $('.tab-panel').removeClass('active');
             $('#tab-' + t).addClass('active');
+            if (t === 'queue') {
+                loadMailerStatus();                     // always re-check: staleness is the signal
+                if (!queue.all.length) loadQueue();
+            }
+            if (t === 'logs' && !logs.all.length) loadLogs();
         });
 
-        // Submissions: search / filter / refresh
+        // Submissions: search / filter / refresh.
+        // Scoped to this panel: the queue and log tabs use .chip too, and an
+        // unscoped selector would fire this handler for those as well.
         $('.subsSearch').on('input', function () { subs.q = this.value.trim().toLowerCase(); renderSubs(); });
-        $('.chip').on('click', function () {
-            $('.chip').removeClass('active');
+        $('#tab-forms .chip').on('click', function () {
+            $('#tab-forms .chip').removeClass('active');
             $(this).addClass('active');
             subs.filter = $(this).data('status');
             loadSubs();                       // the filter is part of the Firestore query now
@@ -554,6 +937,43 @@
             e.preventDefault();
             e.stopPropagation();
             deleteSub($(this).data('id'), $(this).data('name'));
+        });
+
+        // Mail queue
+        $('#queueRefresh').on('click', function () { loadQueue(); loadMailerStatus(); refreshQuota(); });
+        $('#queueDrainBtn').on('click', drainQueueNow);
+        $('#queueSearch').on('input', function () { queue.q = this.value.trim().toLowerCase(); renderQueue(); });
+        $('.qchip').on('click', function () {
+            $('.qchip').removeClass('active');
+            $(this).addClass('active');
+            queue.filter = $(this).data('qstatus');
+            loadQueue();
+        });
+        $('#queueList').on('click', '.q-send', function () {
+            const id = $(this).data('id');
+            const item = queue.all.find(function (x) { return x.id === id; });
+            if (!item) return;
+            JDUI.loading.show('กำลังส่งอีเมล');
+            sendQueued(item).then(function (r) {
+                JDUI.loading.hide();
+                if (r.ok) JDUI.success('ส่งอีเมลไปยัง ' + item.to + ' เรียบร้อยแล้ว', { title: 'ส่งสำเร็จ' });
+                else if (r.quota) JDUI.warning('โควตาอีเมลของวันนี้เต็มแล้ว ระบบจะส่งให้อัตโนมัติในวันถัดไป', { title: 'ยังส่งไม่ได้' });
+                else JDUI.error(String(r.err?.message || 'ส่งไม่สำเร็จ'), { title: 'ส่งไม่สำเร็จ' });
+                loadQueue();
+                refreshQuota();
+            });
+        });
+        $('#queueList').on('click', '.q-del', function () { deleteQueueItem($(this).data('id')); });
+
+        // System log
+        $('#logRefresh').on('click', loadLogs);
+        $('#logPurgeBtn').on('click', purgeLogs);
+        $('#logSearch').on('input', function () { logs.q = this.value.trim().toLowerCase(); renderLogs(); });
+        $('.lchip').on('click', function () {
+            $('.lchip').removeClass('active');
+            $(this).addClass('active');
+            logs.level = $(this).data('level');
+            renderLogs();
         });
 
         $('.addBtn').on('click', function () {

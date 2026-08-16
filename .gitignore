@@ -1,1 +1,5 @@
 ~$่มือการใช้งาน_JD_Online.docx
+
+# Local debug output from the Firebase CLI / emulator
+firebase-debug.log
+firestore-debug.log
