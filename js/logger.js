@@ -45,10 +45,34 @@ window.JDLog = (function () {
         }
     }
 
+    // ── Noise control ──
+    // The same fault usually fires repeatedly: a broken page init throws once per
+    // element it touches, and a failure inside a loop throws once per iteration. One
+    // row per distinct problem is what makes the log readable; the rest is the same
+    // information again, and each copy costs a Firestore write.
+    //
+    // Both limits are per page load, so reloading the page reports the problem again
+    // — a fault that comes back is worth seeing.
+    const seen = {};                 // dedup key -> true
+    const MAX_ROWS_PER_LOAD = 25;    // ceiling for a runaway loop
+    let written = 0;
+
+    function isDuplicate(entry) {
+        // Successes are counted events, not problems — never collapse them.
+        if (entry.ok === true) return false;
+        const key = [entry.level, entry.service, entry.action, entry.message].join('|');
+        if (seen[key]) return true;
+        seen[key] = true;
+        return false;
+    }
+
     // Write one row. Returns a promise that never rejects — see rule 1 above.
     function write(entry) {
         try {
             if (typeof db === 'undefined' || !db) return Promise.resolve();
+            if (isDuplicate(entry)) return Promise.resolve();
+            if (written >= MAX_ROWS_PER_LOAD) return Promise.resolve();
+            written++;
 
             const row = {
                 ts: firebase.firestore.FieldValue.serverTimestamp(),
