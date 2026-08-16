@@ -25,6 +25,27 @@
             "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://code.jquery.com https://www.gstatic.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://script.google.com https://script.googleusercontent.com https://www.gstatic.com https://unpkg.com; frame-ancestors 'none'"
           }
         ]
+      },
+      {
+        "//": "Firebase Hosting defaults every file to max-age=3600, which means a browser serves the copy it already has for a full hour WITHOUT asking whether it changed. A deployed fix therefore does not reach anyone who has the page open, and worse, HTML and JS expire at different moments, so a new page can run old scripts (or the reverse) in between. There is no build step here, so filenames carry no content hash to break the cache with -- instead the code files revalidate on every load. That is cheap: Firebase already serves an ETag, so an unchanged file answers 304 with no body.",
+        "source": "**/*.@(html|js|css)",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      },
+      {
+        "//": "The bare domain serves index.html but its request path is /, which the glob above does not match.",
+        "source": "/",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      },
+      {
+        "//": "Fonts and images are heavy and effectively immutable -- a changed logo or font ships under a new name. Keep these cached hard so revalidating the code files stays the only per-load cost.",
+        "source": "**/*.@(woff2|woff|ttf|otf|eot|png|jpg|jpeg|gif|svg|ico|webp)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=604800" }
+        ]
       }
     ]
   },
