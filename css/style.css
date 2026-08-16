@@ -718,7 +718,51 @@ canvas {
     display: none;
 }
 
+/* ── Searchable dropdown (js/searchable-select.js) ──
+   The native <select> stays in the DOM as the value holder and is hidden; the
+   visible control is .jd-combo-input, which picks up the shared input styling
+   above. */
+.jd-combo { position: relative; }
+.jd-combo-native { display: none; }
+
+.jd-combo-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    margin: 4px 0 0;
+    padding: 4px;
+    list-style: none;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(20, 40, 80, .14);
+}
+.jd-combo-list.show { display: block; }
+
+.jd-combo-option {
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 20px;
+    cursor: pointer;
+}
+.jd-combo-option:hover,
+.jd-combo-option.active { background: #eaf2fd; }
+.jd-combo-option.selected { font-weight: bold; color: #0056b3; }
+
+.jd-combo-empty {
+    padding: 10px;
+    font-size: 18px;
+    color: #7b8794;
+    text-align: center;
+}
+
 /* Invalid: red border + soft red glow */
+.invalid > .jd-combo > .jd-combo-input,
 .invalid > input[type="text"],
 .invalid > input[type="email"],
 .invalid > input[type="date"],
@@ -734,6 +778,7 @@ canvas {
 }
 
 /* Valid: green border confirmation */
+.valid > .jd-combo > .jd-combo-input,
 .valid > input[type="text"],
 .valid > input[type="email"],
 .valid > input[type="date"],
@@ -858,6 +903,9 @@ canvas {
        "- กรุณาเลือก -" placeholder text when nothing has been chosen yet */
     select { appearance: none; -webkit-appearance: none; }
     select:has(option[value=""]:checked) { color: transparent; }
+    /* Searchable dropdowns: the popup must never reach paper, and the visible input
+       already carries the chosen label as plain text. */
+    .jd-combo-list { display: none !important; }
     /* Empty date inputs: hide the browser's dd/mm/yyyy hint (class set on beforeprint) */
     input.print-empty-date { color: transparent; }
     input.print-empty-date::-webkit-datetime-edit { color: transparent; }

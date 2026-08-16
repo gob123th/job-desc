@@ -313,6 +313,12 @@ window.JDConfig = (function () {
         });
 
         if (previous && names.indexOf(previous) !== -1) $sel.val(previous);
+
+        // These lists are long enough that scrolling a native dropdown is painful, so
+        // the select is fronted by a searchable combobox. It reads the options from
+        // the select itself, so it has to run after they are in place — and again on
+        // every refill, since the first paint comes from the cache.
+        if (window.JDSelect) window.JDSelect.enhance($sel[0]);
     }
 
     // Fill the form dropdowns — served from the localStorage cache when fresh, so a repeat
