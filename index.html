@@ -25,8 +25,6 @@
     <!-- 1. Data Lists (ข้อมูลจากที่คุณเบียร์พิมพ์มาให้) -->
     <!-- Department & Position options are loaded dynamically from Firestore (config/departments, config/positions)
          by js/config-loader.js. Manage them at admin.html. -->
-    <datalist id="deptList"></datalist>
-    <datalist id="posList"></datalist>
 
     <div class="container">
         <div class="no-print" style="margin-bottom: 18px; text-align: right;">
@@ -54,12 +52,20 @@
         <h2>1. ข้อมูลตำแหน่งงาน (Position Info)</h2>
         <div class="form-row">
             <div class="form-group">
-                <label>ชื่อตำแหน่ง (Position Title):</label>
-                <input type="text" id="positionName" list="posList" placeholder="พิมพ์หรือเลือกจากรายการ...">
+                <label for="positionName">ชื่อตำแหน่ง (Position Title):</label>
+                <!-- Options come from app_config/master (managed in admin.html) and are
+                     filled in by js/config-loader.js. Free text is not allowed: a typo
+                     or a private wording here creates a position that does not exist in
+                     the master list, which the admin console then cannot group or match. -->
+                <select id="positionName">
+                    <option value="" disabled selected>- กำลังโหลดรายการ -</option>
+                </select>
             </div>
             <div class="form-group">
-                <label>แผนก/ฝ่าย (Department):</label>
-                <input type="text" id="DeptName" list="deptList" placeholder="พิมพ์หรือเลือกจากรายการ...">
+                <label for="DeptName">แผนก/ฝ่าย (Department):</label>
+                <select id="DeptName">
+                    <option value="" disabled selected>- กำลังโหลดรายการ -</option>
+                </select>
             </div>
         </div>
         <div class="form-row">

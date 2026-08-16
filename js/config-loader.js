@@ -9,7 +9,7 @@
 // into the single doc automatically. The old collections are left in place untouched.
 //
 // Used by:
-//   - index.html  : populate the <datalist> dropdowns on the JD form
+//   - index.html  : populate the position / department <select> dropdowns on the JD form
 //   - admin.html  : manage (add / edit / delete) the items
 //
 // The form loads exactly what's in Firestore — no fallback. An empty list means an empty
@@ -283,24 +283,46 @@ window.JDConfig = (function () {
     // by reading the collection is exactly the cost this paging was added to avoid. The admin
     // shows how many rows are currently loaded instead.
 
-    // ---------- Datalist population (index.html) ----------
-    function fillDatalist(datalistId, names) {
-        const $dl = $('#' + datalistId);
-        if (!$dl.length) return;
-        $dl.empty();
+    // ---------- Form dropdown population (index.html) ----------
+    //
+    // Position and department are <select>, not free text: a typed-in value creates a
+    // position or department that does not exist in the master list, which the admin
+    // console then cannot group, filter or match. The list here is the only source.
+    function fillSelect(selectId, names) {
+        const $sel = $('select#' + selectId);
+        if (!$sel.length) return;
+
+        // Keep whatever was already chosen (this runs again after a Firestore refresh
+        // when the first paint came from the localStorage cache).
+        const previous = $sel.val();
+        $sel.empty();
+
+        if (!names.length) {
+            // An empty master list would leave nothing to pick, and the form cannot be
+            // submitted without these two. Say why rather than showing a blank menu.
+            $('<option>').attr({ value: '', disabled: true, selected: true })
+                .text('- ไม่พบรายการ กรุณาแจ้งผู้ดูแลระบบ -').appendTo($sel);
+            JDLog.warn('firestore', 'emptyMasterList', 'no options for #' + selectId);
+            return;
+        }
+
+        $('<option>').attr({ value: '', disabled: true, selected: true })
+            .text('- กรุณาเลือก -').appendTo($sel);
         names.forEach(function (name) {
-            $('<option>').attr('value', name).appendTo($dl);
+            $('<option>').attr('value', name).text(name).appendTo($sel);
         });
+
+        if (previous && names.indexOf(previous) !== -1) $sel.val(previous);
     }
 
     // Fill the form dropdowns — served from the localStorage cache when fresh, so a repeat
     // visitor loads the lists without re-reading every Firestore doc.
-    function populateDatalists() {
+    function populateFormLists() {
         loadItems('departments', true).then(function (items) {
-            fillDatalist('deptList', items.map(function (i) { return i.name; }));
+            fillSelect('DeptName', items.map(function (i) { return i.name; }));
         });
         loadItems('positions', true).then(function (items) {
-            fillDatalist('posList', items.map(function (i) { return i.name; }));
+            fillSelect('positionName', items.map(function (i) { return i.name; }));
         });
     }
 
@@ -315,14 +337,16 @@ window.JDConfig = (function () {
         getSubmission: getSubmission,
         updateSubmission: updateSubmission,
         deleteSubmission: deleteSubmission,
-        fillDatalist: fillDatalist,
-        populateDatalists: populateDatalists
+        fillSelect: fillSelect,
+        populateFormLists: populateFormLists
     };
 })();
 
 $(document).ready(function () {
-    // Only auto-populate when the form datalists are present (i.e. on index.html).
-    if (window.JDConfig && document.getElementById('deptList')) {
-        window.JDConfig.populateDatalists();
+    // Only auto-populate on the entry form (index.html). The id also exists on the
+    // read-only pages, but there it is an <input> holding a saved value — matching on
+    // the tag keeps this from touching those.
+    if (window.JDConfig && document.querySelector('select#positionName')) {
+        window.JDConfig.populateFormLists();
     }
 });

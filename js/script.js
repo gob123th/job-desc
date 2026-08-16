@@ -522,11 +522,13 @@ function setupFormValidation() {
         });
     }
 
+    // Both are <select> now — .val() is null until something is picked, so guard
+    // before trimming rather than assuming a string.
     register($('#positionName'), function () {
-        return $('#positionName').val().trim() ? '' : 'กรุณากรอกชื่อตำแหน่ง';
+        return ($('#positionName').val() || '').trim() ? '' : 'กรุณาเลือกชื่อตำแหน่ง';
     });
     register($('#DeptName'), function () {
-        return $('#DeptName').val().trim() ? '' : 'กรุณากรอกแผนก/ฝ่าย';
+        return ($('#DeptName').val() || '').trim() ? '' : 'กรุณาเลือกแผนก/ฝ่าย';
     });
     register($('#location'), function () {
         return $('#location').val() ? '' : 'กรุณาเลือกสถานที่ปฏิบัติงาน';
